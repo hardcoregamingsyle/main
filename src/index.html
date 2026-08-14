@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Human Flapper</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(to bottom, #87CEEB, #E0F7FA);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 400px;
+            height: 600px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        #game-canvas {
+            background: linear-gradient(to bottom, #87CEEB, #E0F7FA);
+        }
+        
+        #start-screen, #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            z-index: 10;
+        }
+        
+        #game-over-screen {
+            display: none;
+        }
+        
+        h1 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #00FFFF;
+        }
+        
+        h2 {
+            font-size: 24px;
+            margin-bottom: 30px;
+        }
+        
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px;
+        }
+        
+        button:hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+        
+        #score-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            z-index: 5;
+        }
+        
+        .instructions {
+            text-align: center;
+            max-width: 80%;
+            margin-top: 20px;
+            line-height: 1.6;
+        }
+        
+        .key-hint {
+            display: inline-block;
+            padding: 5px 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            margin: 0 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="400" height="600"></canvas>
+        <div id="score-display">Score: 0</div>
+        
+        <div id="start-screen">
+            <h1>Human Flapper</h1>
+            <h2>Help the human overcome obstacles!</h2>
+            <p class="instructions">Press SPACE or tap/click to make the human jump.
+            <br>Avoid the obstacles and try to get the highest score!</p>
+            <button id="start-button">Start Game</button>
+        </div>
+        
+        <div id="game-over-screen">
+            <h1>Game Over!</h1>
+            <h2>Your Score: <span id="final-score">0</span></h2>
+            <button id="restart-button">Play Again</button>
+        </div>
+    </div>
+    
+    <script>
+        // Game variables
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const startButton = document.getElementById('start-button');
+        const restartButton = document.getElementById('restart-button');
+        const scoreDisplay = document.getElementById('score-display');
+        const finalScoreDisplay = document.getElementById('final-score');
+        
+        // Game state
+        let gameRunning = false;
+        let score = 0;
+        let frames = 0;
+        
+        // Human properties
+        const human = {
+            x: 50,
+            y: canvas.height / 2 - 10,
+            width: 40,
+            height: 40,
+            gravity: 0.5,
+            velocity: 0,
+            jump: -10,
+            draw: function() {
+                // Draw human body
+                ctx.fillStyle = '#FF5722';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // Draw head
+                ctx.fillStyle = '#FFCCBC';
+                ctx.beginPath();
+                ctx.arc(this.x + 20, this.y - 10, 15, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw eyes
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.arc(this.x + 15, this.y - 12, 3, 0, Math.PI * 2);
+                ctx.arc(this.x + 25, this.y - 12, 3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw legs
+                ctx.fillStyle = '#3F51B5';
+                ctx.fillRect(this.x + 5, this.y + 40, 10, 20);
+                ctx.fillRect(this.x + 25, this.y + 40, 10, 20);
+                
+                // Draw arms
+                ctx.fillRect(this.x - 5, this.y + 10, 10, 20);
+                ctx.fillRect(this.x + 35, this.y + 10, 10, 20);
+            },
+            update: function() {
+                // Apply gravity
+                this.velocity += this.gravity;
+                this.y += this.velocity;
+                
+                // Floor collision
+                if (this.y + this.height >= canvas.height - ground.height) {
+                    this.y = canvas.height - ground.height - this.height;
+                    if (gameRunning) {
+                        gameOver();
+                    }
+                }
+                
+                // Ceiling collision
+                if (this.y <= 0) {
+                    this.y = 0;
+                    this.velocity = 0;
+                }
+            },
+            flap: function() {
+                this.velocity = this.jump;
+            },
+            reset: function() {
+                this.y = canvas.height / 2 - 10;
+                this.velocity = 0;
+            }
+        };
+        
+        // Ground
+        const ground = {
+            height: 80,
+            draw: function() {
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(0, canvas.height - this.height, canvas.width, this.height);
+                
+                // Draw grass
+                ctx.fillStyle = '#4CAF50';
+                ctx.fillRect(0, canvas.height - this.height, canvas.width, 10);
+            }
+        };
+        
+        // Obstacles
+        const obstacles = {
+            position: [],
+            gap: 150,
+            maxYPos: -150,
+            dx: 2,
+            
+            draw: function() {
+                for (let i = 0; i < this.position.length; i++) {
+                    let p = this.position[i];
+                    
+                    // Top obstacle
+                    ctx.fillStyle = '#4CAF50';
+                    ctx.fillRect(p.x, p.y, p.width, p.height);
+                    
+                    // Bottom obstacle
+                    ctx.fillRect(p.x, p.y + p.height + this.gap, p.width, canvas.height);
+                }
+            },
+            
+            update: function() {
+                if (gameRunning) {
+                    // Add new obstacle every 100 frames
+                    if (frames % 100 === 0) {
+                        this.position.push({
+                            x: canvas.width,
+                            y: this.maxYPos * (Math.random() + 1),
+                            width: 60,
+                            height: 200
+                        });
+                    }
+                    
+                    // Move obstacles and remove off-screen ones
+                    for (let i = 0; i < this.position.length; i++) {
+                        let p = this.position[i];
+                        
+                        p.x -= this.dx;
+                        
+                        // If obstacle moves off screen, remove it
+                        if (p.x + p.width <= 0) {
+                            this.position.shift();
+                            score++;
+                            scoreDisplay.textContent = 'Score: ' + score;
+                        }
+                        
+                        // Collision detection
+                        if (
+                            human.x + human.width > p.x &&
+                            human.x < p.x + p.width &&
+                            (human.y < p.y + p.height ||
+                             human.y + human.height > p.y + p.height + this.gap)
+                        ) {
+                            gameOver();
+                        }
+                    }
+                }
+            },
+            
+            reset: function() {
+                this.position = [];
+            }
+        };
+        
+        // Background elements
+        const background = {
+            draw: function() {
+                // Draw clouds
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.beginPath();
+                ctx.arc(100, 80, 30, 0, Math.PI * 2);
+                ctx.arc(130, 70, 35, 0, Math.PI * 2);
+                ctx.arc(160, 80, 30, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.beginPath();
+                ctx.arc(300, 120, 30, 0, Math.PI * 2);
+                ctx.arc(330, 110, 35, 0, Math.PI * 2);
+                ctx.arc(360, 120, 30, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw sun
+                ctx.fillStyle = '#FFEB3B';
+                ctx.beginPath();
+                ctx.arc(350, 70, 40, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        };
+        
+        // Game functions
+        function draw() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw background
+            background.draw();
+            
+            // Draw ground
+            ground.draw();
+            
+            // Draw obstacles
+            obstacles.draw();
+            
+            // Draw human
+            human.draw();
+            
+            // Draw score
+            scoreDisplay.textContent = 'Score: ' + score;
+        }
+        
+        function update() {
+            human.update();
+            obstacles.update();
+        }
+        
+        function gameLoop() {
+            update();
+            draw();
+            frames++;
+            
+            if (gameRunning) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+        
+        function startGame() {
+            gameRunning = true;
+            score = 0;
+            frames = 0;
+            human.reset();
+            obstacles.reset();
+            startScreen.style.display = 'none';
+            gameOverScreen.style.display = 'none';
+            scoreDisplay.textContent = 'Score: 0';
+            gameLoop();
+        }
+        
+        function gameOver() {
+            gameRunning = false;
+            finalScoreDisplay.textContent = score;
+            gameOverScreen.style.display = 'flex';
+        }
+        
+        // Event listeners
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', startGame);
+        
+        // Jump on spacebar or click/tap
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space') {
+                if (gameRunning) {
+                    human.flap();
+                } else if (startScreen.style.display === 'flex') {
+                    startGame();
+                }
+            }
+        });
+        
+        canvas.addEventListener('click', function() {
+            if (gameRunning) {
+                human.flap();
+            }
+        });
+        
+        // Initial draw
+        draw();
+    </script>
+</body>
+</html>
