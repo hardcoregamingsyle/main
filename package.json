@@ -4,10 +4,10 @@
   "description": "Flappy Bird style game with a girl overcoming obstacles",
   "main": "src/index.html",
   "scripts": {
-    "start": "npx http-server -p 3000 -c-1",
+    "start": "npx http-server -p 3000 -c-1 --cors",
     "test": "echo 'No tests specified' && exit 0"
   },
-  "keywords": ["game", "flappy-bird", "javascript", "girl"],
+  "keywords": ["game", "flappy-bird", "javascript"],
   "author": "Thalamus Code Project",
   "license": "MIT",
   "devDependencies": {
