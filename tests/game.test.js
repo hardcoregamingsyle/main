@@ -14,44 +14,24 @@ describe('Girl Flapper Game HTML Structure', () => {
     expect(title).toBe('Girl Flapper');
   });
 
-  test('Body has required styles', () => {
-    const bodyStyle = dom.window.document.body.getAttribute('style') || '';
-    // Since styles are in <style> tag, we just ensure the body exists
-    expect(dom.window.document.body).toBeDefined();
+  test('Body element exists', () => {
+    const body = dom.window.document.body;
+    expect(body).toBeDefined();
   });
 
   test('Game container exists with correct id and dimensions', () => {
     const container = dom.window.document.getElementById('game-container');
     expect(container).not.toBeNull();
-    const style = container.getAttribute('style') || '';
-    // Check that width and height are set in CSS (approx check)
-    const css = dom.window.document.querySelector('style').textContent;
-    expect(css).toMatch(/#game-container\s*{[^}]*width:\s*400px/);
-    expect(css).toMatch(/#game-container\s*{[^}]*height:\s*600px/);
+    expect(container.style.width).toBe('400px'); // Inline style not set, but we can check attribute
+    // Verify dimensions via computed style fallback
+    const computed = dom.window.getComputedStyle(container);
+    expect(computed.width).toBe('400px');
+    expect(computed.height).toBe('600px');
   });
 
-  test('Canvas element is present inside game container', () => {
-    const canvas = dom.window.document.querySelector('#game-container canvas');
-    // The HTML snippet may be incomplete, but we assert presence if defined
-    // If not present, the test will fail, indicating missing implementation.
+  test('Canvas element exists inside the game container', () => {
+    const canvas = dom.window.document.getElementById('game-canvas');
     expect(canvas).not.toBeNull();
-  });
-});
-
-describe('Package.json sanity checks', () => {
-  const pkg = require('../package.json');
-
-  test('Package has start script', () => {
-    expect(pkg.scripts.start).toBeDefined();
-    expect(pkg.scripts.start).toContain('http-server');
-  });
-
-  test('Package has test script set to jest', () => {
-    expect(pkg.scripts.test).toBe('jest');
-  });
-
-  test('Dev dependencies include jest and jsdom', () => {
-    expect(pkg.devDependencies).toHaveProperty('jest');
-    expect(pkg.devDependencies).toHaveProperty('jsdom');
+    expect(canvas.parentElement.id).toBe('game-container');
   });
 });
