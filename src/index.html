@@ -56,7 +56,7 @@
             text-align: center;
         }
         
-        #restart-button {
+        #restart-btn {
             margin-top: 20px;
             padding: 10px 20px;
             font-size: 18px;
@@ -67,7 +67,7 @@
             cursor: pointer;
         }
         
-        #restart-button:hover {
+        #restart-btn:hover {
             background: #45a049;
         }
         
@@ -90,11 +90,11 @@
         <div id="game-over">
             <h2>Game Over!</h2>
             <p id="final-score">Score: 0</p>
-            <button id="restart-button">Play Again</button>
+            <button id="restart-btn">Play Again</button>
         </div>
         <div id="instructions">Press SPACE or CLICK to flap</div>
     </div>
-    
+
     <script>
         // Game variables
         const canvas = document.getElementById('game-canvas');
@@ -102,7 +102,7 @@
         const scoreDisplay = document.getElementById('score-display');
         const gameOverScreen = document.getElementById('game-over');
         const finalScoreDisplay = document.getElementById('final-score');
-        const restartButton = document.getElementById('restart-button');
+        const restartBtn = document.getElementById('restart-btn');
         
         // Game state
         let gameRunning = false;
@@ -121,30 +121,25 @@
         
         // Pipes array
         let pipes = [];
+        let pipeGap = 150;
+        let pipeWidth = 60;
+        let pipeSpeed = 3;
         
-        // Pipe properties
-        const pipeWidth = 60;
-        const pipeGap = 150;
-        const pipeSpeed = 3;
+        // Ground properties
+        const ground = {
+            height: 80
+        };
         
-        // Generate random pipe heights
-        function generatePipe() {
-            const minHeight = 50;
-            const maxHeight = canvas.height - pipeGap - minHeight;
-            const topHeight = Math.floor(Math.random() * (maxHeight - minHeight) + minHeight);
-            
-            return {
-                x: canvas.width,
-                topHeight: topHeight,
-                bottomY: topHeight + pipeGap,
-                bottomHeight: canvas.height - (topHeight + pipeGap),
-                passed: false
-            };
-        }
+        // Background elements
+        const clouds = [
+            { x: 100, y: 80, width: 60, height: 30 },
+            { x: 300, y: 120, width: 80, height: 40 },
+            { x: 200, y: 50, width: 70, height: 35 }
+        ];
         
-        // Draw the girl character
+        // Draw girl character
         function drawGirl() {
-            // Simple representation of a girl
+            // Simple girl representation using shapes
             ctx.fillStyle = '#FF69B4'; // Pink dress
             ctx.fillRect(girl.x, girl.y, girl.width, girl.height);
             
@@ -157,19 +152,22 @@
             // Hair
             ctx.fillStyle = '#8B4513'; // Brown hair
             ctx.beginPath();
-            ctx.arc(girl.x + girl.width/2, girl.y - 15, 18, 0, Math.PI);
+            ctx.moveTo(girl.x + 5, girl.y - 10);
+            ctx.lineTo(girl.x + 15, girl.y - 25);
+            ctx.lineTo(girl.x + 25, girl.y - 10);
+            ctx.closePath();
             ctx.fill();
             
             // Eyes
             ctx.fillStyle = 'black';
             ctx.beginPath();
-            ctx.arc(girl.x + girl.width/2 - 5, girl.y - 15, 3, 0, Math.PI * 2);
-            ctx.arc(girl.x + girl.width/2 + 5, girl.y - 15, 3, 0, Math.PI * 2);
+            ctx.arc(girl.x + 12, girl.y - 12, 3, 0, Math.PI * 2);
+            ctx.arc(girl.x + 22, girl.y - 12, 3, 0, Math.PI * 2);
             ctx.fill();
             
             // Smile
             ctx.beginPath();
-            ctx.arc(girl.x + girl.width/2, girl.y - 5, 5, 0, Math.PI);
+            ctx.arc(girl.x + 17, girl.y - 5, 5, 0, Math.PI);
             ctx.stroke();
         }
         
@@ -186,90 +184,102 @@
                 
                 // Bottom pipe
                 ctx.fillStyle = '#228B22';
-                ctx.fillRect(pipe.x, pipe.bottomY, pipeWidth, pipe.bottomHeight);
+                ctx.fillRect(pipe.x, pipe.topHeight + pipeGap, pipeWidth, canvas.height - pipe.topHeight - pipeGap);
                 
                 // Pipe cap
                 ctx.fillStyle = '#006400';
-                ctx.fillRect(pipe.x - 5, pipe.bottomY, pipeWidth + 10, 20);
+                ctx.fillRect(pipe.x - 5, pipe.topHeight + pipeGap, pipeWidth + 10, 20);
             });
         }
         
-        // Update game state
-        function update() {
-            // Apply gravity
+        // Draw background elements
+        function drawBackground() {
+            // Sky
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Clouds
+            ctx.fillStyle = 'white';
+            clouds.forEach(cloud => {
+                ctx.beginPath();
+                ctx.arc(cloud.x, cloud.y, cloud.width/4, 0, Math.PI * 2);
+                ctx.arc(cloud.x + cloud.width/4, cloud.y - cloud.height/4, cloud.width/5, 0, Math.PI * 2);
+                ctx.arc(cloud.x + cloud.width/2, cloud.y, cloud.width/4, 0, Math.PI * 2);
+                ctx.arc(cloud.x + cloud.width/1.5, cloud.y - cloud.height/4, cloud.width/5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            
+            // Ground
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(0, canvas.height - ground.height, canvas.width, ground.height);
+            
+            // Grass
+            ctx.fillStyle = '#32CD32';
+            ctx.fillRect(0, canvas.height - ground.height, canvas.width, 10);
+        }
+        
+        // Update girl position
+        function updateGirl() {
             girl.velocity += girl.gravity;
             girl.y += girl.velocity;
             
-            // Move pipes
-            pipes.forEach(pipe => {
-                pipe.x -= pipeSpeed;
-                
-                // Check if girl passed the pipe
-                if (!pipe.passed && pipe.x + pipeWidth < girl.x) {
-                    pipe.passed = true;
-                    score++;
-                    scoreDisplay.textContent = 'Score: ' + score;
-                }
-            });
-            
-            // Remove off-screen pipes
-            pipes = pipes.filter(pipe => pipe.x + pipeWidth > 0);
-            
-            // Add new pipe
-            if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 200) {
-                pipes.push(generatePipe());
-            }
-            
-            // Collision detection
-            checkCollisions();
-            
-            // Ground collision
-            if (girl.y + girl.height > canvas.height) {
+            // Floor collision
+            if (girl.y + girl.height >= canvas.height - ground.height) {
+                girl.y = canvas.height - ground.height - girl.height;
                 gameOver();
             }
             
             // Ceiling collision
-            if (girl.y < 0) {
+            if (girl.y <= 0) {
                 girl.y = 0;
                 girl.velocity = 0;
             }
         }
         
-        // Check collisions
-        function checkCollisions() {
-            const girlRect = {
-                x: girl.x,
-                y: girl.y,
-                width: girl.width,
-                height: girl.height
-            };
+        // Generate new pipes
+        function generatePipe() {
+            const minHeight = 50;
+            const maxHeight = canvas.height - ground.height - pipeGap - minHeight;
+            const topHeight = Math.floor(Math.random() * (maxHeight - minHeight) + minHeight);
             
-            for (let i = 0; i < pipes.length; i++) {
-                const pipe = pipes[i];
+            pipes.push({
+                x: canvas.width,
+                topHeight: topHeight,
+                passed: false
+            });
+        }
+        
+        // Update pipes
+        function updatePipes() {
+            // Move pipes
+            for (let i = pipes.length - 1; i >= 0; i--) {
+                pipes[i].x -= pipeSpeed;
                 
-                // Top pipe collision
-                if (
-                    girlRect.x < pipe.x + pipeWidth &&
-                    girlRect.x + girlRect.width > pipe.x &&
-                    girlRect.y < pipe.topHeight
-                ) {
-                    gameOver();
-                    return;
+                // Check if girl passed the pipe
+                if (!pipes[i].passed && pipes[i].x + pipeWidth < girl.x) {
+                    pipes[i].passed = true;
+                    score++;
+                    scoreDisplay.textContent = 'Score: ' + score;
                 }
                 
-                // Bottom pipe collision
+                // Remove pipes that are off screen
+                if (pipes[i].x + pipeWidth < 0) {
+                    pipes.splice(i, 1);
+                }
+                
+                // Collision detection
                 if (
-                    girlRect.x < pipe.x + pipeWidth &&
-                    girlRect.x + girlRect.width > pipe.x &&
-                    girlRect.y + girlRect.height > pipe.bottomY
+                    girl.x + girl.width > pipes[i].x &&
+                    girl.x < pipes[i].x + pipeWidth &&
+                    (girl.y < pipes[i].topHeight ||
+                     girl.y + girl.height > pipes[i].topHeight + pipeGap)
                 ) {
                     gameOver();
-                    return;
                 }
             }
         }
         
-        // Game over
+        // Game over function
         function gameOver() {
             gameRunning = false;
             finalScoreDisplay.textContent = 'Score: ' + score;
@@ -287,56 +297,52 @@
             gameRunning = true;
         }
         
-        // Draw everything
-        function draw() {
+        // Game loop
+        function gameLoop() {
             // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Draw ground
-            ctx.fillStyle = '#8B4513'; // Brown ground
-            ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
+            // Draw background
+            drawBackground();
             
-            // Draw grass
-            ctx.fillStyle = '#32CD32'; // Green grass
-            ctx.fillRect(0, canvas.height - 20, canvas.width, 5);
-            
-            // Draw pipes
-            drawPipes();
-            
-            // Draw girl
-            drawGirl();
-        }
-        
-        // Game loop
-        function gameLoop() {
             if (gameRunning) {
-                update();
-                draw();
+                // Update and draw girl
+                updateGirl();
+                drawGirl();
+                
+                // Update and draw pipes
+                updatePipes();
+                drawPipes();
+                
+                // Generate new pipes
+                if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 200) {
+                    generatePipe();
+                }
             }
+            
             requestAnimationFrame(gameLoop);
         }
         
-        // Handle jump
-        function jump() {
-            if (gameRunning) {
-                girl.velocity = girl.jump;
-            } else if (!gameRunning && gameOverScreen.style.display === 'flex') {
-                resetGame();
-            }
-        }
-        
         // Event listeners
-        document.addEventListener('keydown', (e) => {
+        document.addEventListener('keydown', function(e) {
             if (e.code === 'Space') {
-                jump();
+                if (!gameRunning) {
+                    resetGame();
+                } else {
+                    girl.velocity = girl.jump;
+                }
             }
         });
         
-        canvas.addEventListener('click', () => {
-            jump();
+        canvas.addEventListener('click', function() {
+            if (!gameRunning) {
+                resetGame();
+            } else {
+                girl.velocity = girl.jump;
+            }
         });
         
-        restartButton.addEventListener('click', resetGame);
+        restartBtn.addEventListener('click', resetGame);
         
         // Start the game
         resetGame();
