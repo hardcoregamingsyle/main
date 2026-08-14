@@ -65,6 +65,11 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        #restart-btn:hover {
+            background: #45a049;
         }
         
         #start-screen {
@@ -78,10 +83,8 @@
             justify-content: center;
             align-items: center;
             color: white;
-            font-size: 24px;
-            font-weight: bold;
             text-align: center;
-            background: rgba(0, 0, 0, 0.5);
+            padding: 20px;
         }
         
         #start-btn {
@@ -93,6 +96,24 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        #start-btn:hover {
+            background: #45a049;
+        }
+        
+        h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        p {
+            font-size: 18px;
+            margin-bottom: 20px;
+            max-width: 80%;
+            line-height: 1.5;
         }
     </style>
 </head>
@@ -101,13 +122,14 @@
         <canvas id="game-canvas" width="400" height="600"></canvas>
         <div id="score-display">Score: 0</div>
         <div id="game-over">
-            <div>Game Over!</div>
-            <div id="final-score">Score: 0</div>
+            <h2>Game Over!</h2>
+            <p id="final-score">Score: 0</p>
             <button id="restart-btn">Play Again</button>
         </div>
         <div id="start-screen">
-            <div>Girl Flapper</div>
-            <div>Press SPACE or Click to Jump</div>
+            <h1>Girl Flapper</h1>
+            <p>Help the girl navigate through the obstacles!</p>
+            <p>Press SPACE or click to make her jump</p>
             <button id="start-btn">Start Game</button>
         </div>
     </div>
@@ -117,11 +139,11 @@
         const canvas = document.getElementById('game-canvas');
         const ctx = canvas.getContext('2d');
         const scoreDisplay = document.getElementById('score-display');
-        const finalScoreDisplay = document.getElementById('final-score');
         const gameOverScreen = document.getElementById('game-over');
+        const finalScore = document.getElementById('final-score');
+        const restartBtn = document.getElementById('restart-btn');
         const startScreen = document.getElementById('start-screen');
         const startBtn = document.getElementById('start-btn');
-        const restartBtn = document.getElementById('restart-btn');
         
         // Game state
         let gameRunning = false;
@@ -132,7 +154,7 @@
             x: 80,
             y: canvas.height / 2,
             width: 40,
-            height: 60,
+            height: 40,
             gravity: 0.5,
             velocity: 0,
             jump: -10
@@ -141,63 +163,58 @@
         // Obstacles
         let obstacles = [];
         const obstacleWidth = 60;
-        const gap = 150;
+        const gapHeight = 150;
         const obstacleSpeed = 3;
         
-        // Ground
-        const groundHeight = 100;
+        // Game loop variables
+        let animationId;
+        let lastObstacleTime = 0;
+        const obstacleInterval = 1500; // milliseconds
         
         // Draw girl character
         function drawGirl() {
-            // Simple representation of a girl
-            ctx.fillStyle = '#FF69B4'; // Pink dress
+            // Draw girl body (simple representation)
+            ctx.fillStyle = '#FF69B4'; // Pink color
             ctx.fillRect(girl.x, girl.y, girl.width, girl.height);
             
-            // Head
-            ctx.fillStyle = '#FFDAB9'; // Skin color
+            // Draw girl head
+            ctx.fillStyle = '#FFD700'; // Yellow color
             ctx.beginPath();
             ctx.arc(girl.x + girl.width/2, girl.y - 10, 15, 0, Math.PI * 2);
             ctx.fill();
             
-            // Hair
-            ctx.fillStyle = '#8B4513'; // Brown hair
-            ctx.beginPath();
-            ctx.arc(girl.x + girl.width/2, girl.y - 15, 20, 0, Math.PI);
-            ctx.fill();
-            
-            // Eyes
+            // Draw eyes
             ctx.fillStyle = 'black';
             ctx.beginPath();
-            ctx.arc(girl.x + girl.width/3, girl.y - 15, 3, 0, Math.PI * 2);
-            ctx.arc(girl.x + 2*girl.width/3, girl.y - 15, 3, 0, Math.PI * 2);
+            ctx.arc(girl.x + girl.width/2 - 5, girl.y - 15, 3, 0, Math.PI * 2);
+            ctx.arc(girl.x + girl.width/2 + 5, girl.y - 15, 3, 0, Math.PI * 2);
             ctx.fill();
             
-            // Smile
+            // Draw smile
             ctx.beginPath();
             ctx.arc(girl.x + girl.width/2, girl.y - 5, 8, 0, Math.PI);
             ctx.stroke();
+            
+            // Draw dress
+            ctx.fillStyle = '#4169E1'; // Blue color
+            ctx.fillRect(girl.x, girl.y + girl.height, girl.width, 20);
         }
         
         // Draw obstacles
         function drawObstacles() {
             obstacles.forEach(obstacle => {
                 // Top obstacle
-                ctx.fillStyle = '#228B22'; // Green
+                ctx.fillStyle = '#228B22'; // Green color
                 ctx.fillRect(obstacle.x, 0, obstacleWidth, obstacle.topHeight);
                 
                 // Bottom obstacle
-                ctx.fillRect(obstacle.x, obstacle.topHeight + gap, obstacleWidth, canvas.height);
+                ctx.fillRect(obstacle.x, obstacle.topHeight + gapHeight, obstacleWidth, canvas.height);
+                
+                // Add some detail to obstacles
+                ctx.fillStyle = '#006400'; // Darker green
+                ctx.fillRect(obstacle.x, obstacle.topHeight - 10, obstacleWidth, 10);
+                ctx.fillRect(obstacle.x, obstacle.topHeight + gapHeight, obstacleWidth, 10);
             });
-        }
-        
-        // Draw ground
-        function drawGround() {
-            ctx.fillStyle = '#8B4513'; // Brown ground
-            ctx.fillRect(0, canvas.height - groundHeight, canvas.width, groundHeight);
-            
-            // Grass on top
-            ctx.fillStyle = '#32CD32'; // Green grass
-            ctx.fillRect(0, canvas.height - groundHeight, canvas.width, 10);
         }
         
         // Update girl position
@@ -206,108 +223,108 @@
             girl.y += girl.velocity;
             
             // Floor collision
-            if (girl.y + girl.height >= canvas.height - groundHeight) {
-                girl.y = canvas.height - groundHeight - girl.height;
+            if (girl.y + girl.height > canvas.height) {
+                girl.y = canvas.height - girl.height;
                 gameOver();
             }
             
             // Ceiling collision
-            if (girl.y <= 0) {
+            if (girl.y < 0) {
                 girl.y = 0;
                 girl.velocity = 0;
             }
         }
         
+        // Create new obstacle
+        function createObstacle() {
+            const topHeight = Math.floor(Math.random() * (canvas.height - gapHeight - 100)) + 50;
+            obstacles.push({
+                x: canvas.width,
+                topHeight: topHeight,
+                passed: false
+            });
+        }
+        
         // Update obstacles
         function updateObstacles() {
             // Move obstacles
-            obstacles.forEach(obstacle => {
-                obstacle.x -= obstacleSpeed;
-            });
-            
-            // Remove off-screen obstacles
-            obstacles = obstacles.filter(obstacle => obstacle.x > -obstacleWidth);
-            
-            // Add new obstacles
-            if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < canvas.width - 200) {
-                const topHeight = Math.floor(Math.random() * (canvas.height - groundHeight - gap - 100)) + 50;
-                obstacles.push({
-                    x: canvas.width,
-                    topHeight: topHeight
-                });
-            }
-            
-            // Check collisions
-            checkCollisions();
-        }
-        
-        // Check collisions
-        function checkCollisions() {
-            const girlRect = {
-                x: girl.x,
-                y: girl.y,
-                width: girl.width,
-                height: girl.height
-            };
-            
-            for (let i = 0; i < obstacles.length; i++) {
-                const obstacle = obstacles[i];
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].x -= obstacleSpeed;
                 
-                // Top obstacle collision
-                const topRect = {
-                    x: obstacle.x,
-                    y: 0,
-                    width: obstacleWidth,
-                    height: obstacle.topHeight
-                };
-                
-                // Bottom obstacle collision
-                const bottomRect = {
-                    x: obstacle.x,
-                    y: obstacle.topHeight + gap,
-                    width: obstacleWidth,
-                    height: canvas.height
-                };
-                
-                if (isColliding(girlRect, topRect) || isColliding(girlRect, bottomRect)) {
-                    gameOver();
-                    return;
+                // Remove off-screen obstacles
+                if (obstacles[i].x + obstacleWidth < 0) {
+                    obstacles.splice(i, 1);
+                    continue;
                 }
                 
-                // Score when passing obstacle
-                if (!obstacle.passed && obstacle.x + obstacleWidth < girl.x) {
-                    obstacle.passed = true;
+                // Check if girl passed the obstacle
+                if (!obstacles[i].passed && obstacles[i].x + obstacleWidth < girl.x) {
+                    obstacles[i].passed = true;
                     score++;
                     scoreDisplay.textContent = `Score: ${score}`;
                 }
+                
+                // Collision detection
+                if (
+                    girl.x + girl.width > obstacles[i].x &&
+                    girl.x < obstacles[i].x + obstacleWidth &&
+                    (girl.y < obstacles[i].topHeight ||
+                     girl.y + girl.height > obstacles[i].topHeight + gapHeight)
+                ) {
+                    gameOver();
+                }
             }
         }
         
-        // Collision detection helper
-        function isColliding(rect1, rect2) {
-            return rect1.x < rect2.x + rect2.width &&
-                   rect1.x + rect1.width > rect2.x &&
-                   rect1.y < rect2.y + rect2.height &&
-                   rect1.y + rect1.height > rect2.y;
-        }
-        
         // Game loop
-        function gameLoop() {
-            if (!gameRunning) return;
-            
+        function gameLoop(timestamp) {
             // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Draw everything
-            drawGround();
-            drawObstacles();
+            // Draw background elements
+            drawBackground();
+            
+            // Update and draw game objects
+            if (gameRunning) {
+                updateGirl();
+                updateObstacles();
+                
+                // Generate new obstacles
+                if (timestamp - lastObstacleTime > obstacleInterval) {
+                    createObstacle();
+                    lastObstacleTime = timestamp;
+                }
+            }
+            
             drawGirl();
+            drawObstacles();
             
-            // Update game objects
-            updateGirl();
-            updateObstacles();
+            animationId = requestAnimationFrame(gameLoop);
+        }
+        
+        // Draw background elements
+        function drawBackground() {
+            // Draw ground
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
             
-            requestAnimationFrame(gameLoop);
+            // Draw grass
+            ctx.fillStyle = '#32CD32';
+            ctx.fillRect(0, canvas.height - 20, canvas.width, 5);
+            
+            // Draw clouds
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.beginPath();
+            ctx.arc(100, 80, 20, 0, Math.PI * 2);
+            ctx.arc(130, 70, 25, 0, Math.PI * 2);
+            ctx.arc(160, 80, 20, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(300, 120, 20, 0, Math.PI * 2);
+            ctx.arc(330, 110, 25, 0, Math.PI * 2);
+            ctx.arc(360, 120, 20, 0, Math.PI * 2);
+            ctx.fill();
         }
         
         // Start game
@@ -315,54 +332,43 @@
             gameRunning = true;
             score = 0;
             scoreDisplay.textContent = `Score: ${score}`;
-            startScreen.style.display = 'none';
-            gameOverScreen.style.display = 'none';
-            
-            // Reset girl
+            obstacles = [];
             girl.y = canvas.height / 2;
             girl.velocity = 0;
-            
-            // Reset obstacles
-            obstacles = [];
-            
-            gameLoop();
+            startScreen.style.display = 'none';
+            gameOverScreen.style.display = 'none';
         }
         
         // Game over
         function gameOver() {
             gameRunning = false;
-            finalScoreDisplay.textContent = `Score: ${score}`;
+            finalScore.textContent = `Score: ${score}`;
             gameOverScreen.style.display = 'flex';
-        }
-        
-        // Jump function
-        function jump() {
-            if (gameRunning) {
-                girl.velocity = girl.jump;
-            } else if (!gameRunning && startScreen.style.display !== 'none') {
-                startGame();
-            }
+            cancelAnimationFrame(animationId);
         }
         
         // Event listeners
-        startBtn.addEventListener('click', startGame);
-        restartBtn.addEventListener('click', startGame);
-        
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space') {
-                jump();
+                if (gameRunning) {
+                    girl.velocity = girl.jump;
+                } else if (startScreen.style.display !== 'none') {
+                    startGame();
+                }
             }
         });
         
         canvas.addEventListener('click', () => {
-            jump();
+            if (gameRunning) {
+                girl.velocity = girl.jump;
+            }
         });
         
-        // Initialize
-        window.onload = () => {
-            drawGround();
-            drawGirl();
-        };
+        restartBtn.addEventListener('click', startGame);
+        startBtn.addEventListener('click', startGame);
+        
+        // Initialize game
+        gameLoop(0);
     </script>
 </body>
 </html>
