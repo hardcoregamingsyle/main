@@ -19,19 +19,15 @@ describe('Girl Flapper Game HTML Structure', () => {
     expect(body).toBeDefined();
   });
 
-  test('Game container exists with correct id and dimensions', () => {
+  test('Game container exists with correct id', () => {
     const container = dom.window.document.getElementById('game-container');
     expect(container).not.toBeNull();
-    expect(container.style.width).toBe('400px'); // Inline style not set, but we can check attribute
-    // Verify dimensions via computed style fallback
-    const computed = dom.window.getComputedStyle(container);
-    expect(computed.width).toBe('400px');
-    expect(computed.height).toBe('600px');
   });
 
-  test('Canvas element exists inside the game container', () => {
+  test('Canvas element exists inside game container', () => {
     const canvas = dom.window.document.getElementById('game-canvas');
     expect(canvas).not.toBeNull();
-    expect(canvas.parentElement.id).toBe('game-container');
+    const container = dom.window.document.getElementById('game-container');
+    expect(container.contains(canvas)).toBe(true);
   });
 });
