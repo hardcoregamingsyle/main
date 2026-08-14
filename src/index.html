@@ -53,22 +53,18 @@
             align-items: center;
             color: white;
             font-size: 24px;
-            text-align: center;
+            font-weight: bold;
         }
         
         #restart-btn {
             margin-top: 20px;
             padding: 10px 20px;
             font-size: 18px;
-            background: #4CAF50;
+            background: #FF6B6B;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-        }
-        
-        #restart-btn:hover {
-            background: #45a049;
         }
         
         #start-screen {
@@ -83,23 +79,29 @@
             align-items: center;
             color: white;
             text-align: center;
-            background: rgba(0, 0, 0, 0.6);
+            padding: 20px;
         }
         
         #start-btn {
             margin-top: 20px;
             padding: 10px 20px;
             font-size: 18px;
-            background: #4CAF50;
+            background: #4ECDC4;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
         }
         
-        #instructions {
-            margin-top: 20px;
-            font-size: 16px;
+        h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        p {
+            font-size: 18px;
+            margin-bottom: 20px;
             max-width: 80%;
         }
     </style>
@@ -108,21 +110,16 @@
     <div id="game-container">
         <canvas id="game-canvas" width="400" height="600"></canvas>
         <div id="score-display">Score: 0</div>
-        
         <div id="game-over">
             <h2>Game Over!</h2>
             <p id="final-score">Score: 0</p>
             <button id="restart-btn">Play Again</button>
         </div>
-        
         <div id="start-screen">
-            <h2>Girl Flapper</h2>
-            <p>Help the girl fly through the pipes!</p>
+            <h1>Girl Flapper</h1>
+            <p>Help the girl navigate through the pipes!</p>
+            <p>Press SPACE or CLICK to flap</p>
             <button id="start-btn">Start Game</button>
-            <div id="instructions">
-                <p>Press SPACE or CLICK to make the girl flap her wings</p>
-                <p>Avoid the pipes and don't hit the ground!</p>
-            </div>
         </div>
     </div>
     
@@ -132,7 +129,7 @@
         const ctx = canvas.getContext('2d');
         const scoreDisplay = document.getElementById('score-display');
         const gameOverScreen = document.getElementById('game-over');
-        const finalScoreDisplay = document.getElementById('final-score');
+        const finalScore = document.getElementById('final-score');
         const restartBtn = document.getElementById('restart-btn');
         const startScreen = document.getElementById('start-screen');
         const startBtn = document.getElementById('start-btn');
@@ -144,16 +141,16 @@
         
         // Load images
         const bgImg = new Image();
-        bgImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600"><rect width="400" height="600" fill="%2387CEEB"/><circle cx="300" cy="100" r="50" fill="%23FFFFFF" opacity="0.8"/></svg>';
+        bgImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600"><rect width="400" height="600" fill="%2387CEEB"/><circle cx="100" cy="100" r="50" fill="%23FFFFFF" opacity="0.7"/><circle cx="300" cy="150" r="40" fill="%23FFFFFF" opacity="0.5"/></svg>';
         
         const girlImg = new Image();
-        girlImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="15" r="8" fill="%23FFB6C1"/><path d="M15 20 Q20 25 25 20" stroke="%23000000" stroke-width="2" fill="none"/><circle cx="17" cy="13" r="2" fill="%23000000"/><circle cx="23" cy="13" r="2" fill="%23000000"/><path d="M15 25 Q20 30 25 25" stroke="%23000000" stroke-width="2" fill="none"/><rect x="15" y="30" width="10" height="10" fill="%231E90FF" rx="2"/></svg>';
+        girlImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="15" r="8" fill="%23FFB6C1"/><rect x="15" y="23" width="10" height="15" fill="%23FF69B4"/><rect x="10" y="38" width="20" height="5" fill="%23FF69B4"/><circle cx="17" cy="13" r="1" fill="%23000000"/><circle cx="23" cy="13" r="1" fill="%23000000"/><path d="M17 20 Q20 22 23 20" stroke="%23000000" stroke-width="1" fill="none"/></svg>';
         
         const pipeTopImg = new Image();
-        pipeTopImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="200"><rect x="0" y="0" width="60" height="200" fill="%2332CD32"/><rect x="0" y="0" width="60" height="20" fill="%23228B22"/></svg>';
+        pipeTopImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="200"><rect x="0" y="0" width="60" height="200" fill="%23228B22"/><rect x="0" y="0" width="60" height="20" fill="%2332CD32"/></svg>';
         
         const pipeBottomImg = new Image();
-        pipeBottomImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="200"><rect x="0" y="0" width="60" height="200" fill="%2332CD32"/><rect x="0" y="180" width="60" height="20" fill="%23228B22"/></svg>';
+        pipeBottomImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="200"><rect x="0" y="0" width="60" height="200" fill="%23228B22"/><rect x="0" y="180" width="60" height="20" fill="%2332CD32"/></svg>';
         
         // Background object
         const background = {
@@ -260,11 +257,11 @@
                     // Move pipes to the left
                     p.x -= this.dx;
                     
-                    // If pipe goes off screen, remove it and add score
+                    // If pipe goes off screen, remove it
                     if (p.x + p.width <= 0) {
                         this.position.shift();
                         score++;
-                        scoreDisplay.textContent = 'Score: ' + score;
+                        scoreDisplay.textContent = `Score: ${score}`;
                     }
                     
                     // Collision detection
@@ -288,7 +285,7 @@
         // Game functions
         function gameOver() {
             gameState = 'gameover';
-            finalScoreDisplay.textContent = 'Score: ' + score;
+            finalScore.textContent = `Score: ${score}`;
             gameOverScreen.style.display = 'flex';
         }
         
@@ -297,7 +294,7 @@
             frames = 0;
             girl.reset();
             pipes.reset();
-            scoreDisplay.textContent = 'Score: ' + score;
+            scoreDisplay.textContent = `Score: ${score}`;
             gameOverScreen.style.display = 'none';
             gameState = 'playing';
         }
@@ -305,7 +302,6 @@
         function startGame() {
             startScreen.style.display = 'none';
             gameState = 'playing';
-            resetGame();
         }
         
         // Draw everything
@@ -323,12 +319,11 @@
         }
         
         // Game loop
-        function gameLoop() {
+        function loop() {
             update();
             draw();
             frames++;
-            
-            requestAnimationFrame(gameLoop);
+            requestAnimationFrame(loop);
         }
         
         // Event listeners
@@ -354,7 +349,7 @@
         restartBtn.addEventListener('click', resetGame);
         
         // Start the game loop
-        gameLoop();
+        loop();
     </script>
 </body>
 </html>
