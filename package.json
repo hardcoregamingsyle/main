@@ -1,16 +1,16 @@
 {
-  \"name\": \"human-flapper\",
-  \"version\": \"1.0.0\",
-  \"description\": \"Flappy Bird style game with a man overcoming obstacles\",
-  \"main\": \"src/index.html\",
-  \"scripts\": {
-    \"start\": \"npx http-server -p 3000 -c-1\",
-    \"test\": \"echo 'No tests specified' && exit 0\"
+  "name": "girl-flapper",
+  "version": "1.0.0",
+  "description": "Flappy Bird style game with a girl overcoming obstacles",
+  "main": "src/index.html",
+  "scripts": {
+    "start": "npx http-server -p 3000 -c-1",
+    "test": "echo 'No tests specified' && exit 0"
   },
-  \"keywords\": [\"game\", \"flappy-bird\", \"javascript\"],
-  \"author\": \"Thalamus Code Project\",
-  \"license\": \"MIT\",
-  \"devDependencies\": {
-    \"http-server\": \"^14.1.1\"
+  "keywords": ["game", "flappy-bird", "javascript", "girl"],
+  "author": "Thalamus Code Project",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
   }
 }

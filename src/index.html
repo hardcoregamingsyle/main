@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Human Flapper</title>
+    <title>Girl Flapper</title>
     <style>
         body {
             margin: 0;
@@ -30,7 +30,44 @@
             background: linear-gradient(to bottom, #87CEEB, #E0F7FA);
         }
         
-        #start-screen, #game-over-screen {
+        #score-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        #restart-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 18px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        #start-screen {
             position: absolute;
             top: 0;
             left: 0;
@@ -40,67 +77,32 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: rgba(0, 0, 0, 0.7);
             color: white;
-            z-index: 10;
+            text-align: center;
+            padding: 20px;
         }
         
-        #game-over-screen {
-            display: none;
-        }
-        
-        h1 {
-            font-size: 36px;
-            margin-bottom: 20px;
-            text-shadow: 0 0 10px #00FFFF;
-        }
-        
-        h2 {
-            font-size: 24px;
-            margin-bottom: 30px;
-        }
-        
-        button {
-            padding: 15px 30px;
+        #start-button {
+            margin-top: 20px;
+            padding: 10px 20px;
             font-size: 18px;
             background: #4CAF50;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            transition: all 0.3s;
-            margin: 10px;
         }
         
-        button:hover {
-            background: #45a049;
-            transform: scale(1.05);
-        }
-        
-        #score-display {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            font-size: 24px;
-            font-weight: bold;
-            color: white;
+        h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-            z-index: 5;
         }
         
-        .instructions {
-            text-align: center;
+        p {
+            font-size: 18px;
+            margin-bottom: 20px;
             max-width: 80%;
-            margin-top: 20px;
-            line-height: 1.6;
-        }
-        
-        .key-hint {
-            display: inline-block;
-            padding: 5px 10px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 5px;
-            margin: 0 5px;
         }
     </style>
 </head>
@@ -108,19 +110,16 @@
     <div id="game-container">
         <canvas id="game-canvas" width="400" height="600"></canvas>
         <div id="score-display">Score: 0</div>
-        
-        <div id="start-screen">
-            <h1>Human Flapper</h1>
-            <h2>Help the human overcome obstacles!</h2>
-            <p class="instructions">Press SPACE or tap/click to make the human jump.
-            <br>Avoid the obstacles and try to get the highest score!</p>
-            <button id="start-button">Start Game</button>
-        </div>
-        
-        <div id="game-over-screen">
-            <h1>Game Over!</h1>
-            <h2>Your Score: <span id="final-score">0</span></h2>
+        <div id="game-over">
+            <div>Game Over!</div>
+            <div id="final-score">Score: 0</div>
             <button id="restart-button">Play Again</button>
+        </div>
+        <div id="start-screen">
+            <h1>Girl Flapper</h1>
+            <p>Control the girl to avoid obstacles!</p>
+            <p>Press SPACE or click to jump</p>
+            <button id="start-button">Start Game</button>
         </div>
     </div>
     
@@ -128,260 +127,246 @@
         // Game variables
         const canvas = document.getElementById('game-canvas');
         const ctx = canvas.getContext('2d');
-        const startScreen = document.getElementById('start-screen');
-        const gameOverScreen = document.getElementById('game-over-screen');
-        const startButton = document.getElementById('start-button');
-        const restartButton = document.getElementById('restart-button');
         const scoreDisplay = document.getElementById('score-display');
+        const gameOverScreen = document.getElementById('game-over');
         const finalScoreDisplay = document.getElementById('final-score');
+        const restartButton = document.getElementById('restart-button');
+        const startScreen = document.getElementById('start-screen');
+        const startButton = document.getElementById('start-button');
         
         // Game state
-        let gameRunning = false;
+        let gameState = 'start'; // 'start', 'playing', 'gameover'
         let score = 0;
-        let frames = 0;
         
-        // Human properties
-        const human = {
-            x: 50,
-            y: canvas.height / 2 - 10,
-            width: 40,
-            height: 40,
-            gravity: 0.5,
+        // Girl properties
+        const girl = {
+            x: 80,
+            y: canvas.height / 2,
+            radius: 20,
             velocity: 0,
-            jump: -10,
+            gravity: 0.5,
+            lift: -10,
             draw: function() {
-                // Draw human body
-                ctx.fillStyle = '#FF5722';
-                ctx.fillRect(this.x, this.y, this.width, this.height);
-                
-                // Draw head
-                ctx.fillStyle = '#FFCCBC';
+                // Draw girl body
+                ctx.fillStyle = '#FF69B4';
                 ctx.beginPath();
-                ctx.arc(this.x + 20, this.y - 10, 15, 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw girl hair
+                ctx.fillStyle = '#8B4513';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y - 15, 15, 0, Math.PI * 2);
                 ctx.fill();
                 
                 // Draw eyes
-                ctx.fillStyle = 'black';
+                ctx.fillStyle = 'white';
                 ctx.beginPath();
-                ctx.arc(this.x + 15, this.y - 12, 3, 0, Math.PI * 2);
-                ctx.arc(this.x + 25, this.y - 12, 3, 0, Math.PI * 2);
+                ctx.arc(this.x - 8, this.y - 5, 4, 0, Math.PI * 2);
+                ctx.arc(this.x + 8, this.y - 5, 4, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Draw legs
-                ctx.fillStyle = '#3F51B5';
-                ctx.fillRect(this.x + 5, this.y + 40, 10, 20);
-                ctx.fillRect(this.x + 25, this.y + 40, 10, 20);
+                // Draw pupils
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.arc(this.x - 8, this.y - 5, 2, 0, Math.PI * 2);
+                ctx.arc(this.x + 8, this.y - 5, 2, 0, Math.PI * 2);
+                ctx.fill();
                 
-                // Draw arms
-                ctx.fillRect(this.x - 5, this.y + 10, 10, 20);
-                ctx.fillRect(this.x + 35, this.y + 10, 10, 20);
+                // Draw smile
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y + 5, 8, 0, Math.PI);
+                ctx.stroke();
             },
             update: function() {
-                // Apply gravity
                 this.velocity += this.gravity;
                 this.y += this.velocity;
                 
                 // Floor collision
-                if (this.y + this.height >= canvas.height - ground.height) {
-                    this.y = canvas.height - ground.height - this.height;
-                    if (gameRunning) {
+                if (this.y + this.radius > canvas.height) {
+                    this.y = canvas.height - this.radius;
+                    if (gameState === 'playing') {
                         gameOver();
                     }
                 }
                 
                 // Ceiling collision
-                if (this.y <= 0) {
-                    this.y = 0;
+                if (this.y - this.radius < 0) {
+                    this.y = this.radius;
                     this.velocity = 0;
                 }
             },
             flap: function() {
-                this.velocity = this.jump;
-            },
-            reset: function() {
-                this.y = canvas.height / 2 - 10;
-                this.velocity = 0;
-            }
-        };
-        
-        // Ground
-        const ground = {
-            height: 80,
-            draw: function() {
-                ctx.fillStyle = '#8B4513';
-                ctx.fillRect(0, canvas.height - this.height, canvas.width, this.height);
-                
-                // Draw grass
-                ctx.fillStyle = '#4CAF50';
-                ctx.fillRect(0, canvas.height - this.height, canvas.width, 10);
+                this.velocity = this.lift;
             }
         };
         
         // Obstacles
-        const obstacles = {
-            position: [],
-            gap: 150,
-            maxYPos: -150,
-            dx: 2,
-            
-            draw: function() {
-                for (let i = 0; i < this.position.length; i++) {
-                    let p = this.position[i];
-                    
-                    // Top obstacle
-                    ctx.fillStyle = '#4CAF50';
-                    ctx.fillRect(p.x, p.y, p.width, p.height);
-                    
-                    // Bottom obstacle
-                    ctx.fillRect(p.x, p.y + p.height + this.gap, p.width, canvas.height);
-                }
-            },
-            
-            update: function() {
-                if (gameRunning) {
-                    // Add new obstacle every 100 frames
-                    if (frames % 100 === 0) {
-                        this.position.push({
-                            x: canvas.width,
-                            y: this.maxYPos * (Math.random() + 1),
-                            width: 60,
-                            height: 200
-                        });
-                    }
-                    
-                    // Move obstacles and remove off-screen ones
-                    for (let i = 0; i < this.position.length; i++) {
-                        let p = this.position[i];
-                        
-                        p.x -= this.dx;
-                        
-                        // If obstacle moves off screen, remove it
-                        if (p.x + p.width <= 0) {
-                            this.position.shift();
-                            score++;
-                            scoreDisplay.textContent = 'Score: ' + score;
-                        }
-                        
-                        // Collision detection
-                        if (
-                            human.x + human.width > p.x &&
-                            human.x < p.x + p.width &&
-                            (human.y < p.y + p.height ||
-                             human.y + human.height > p.y + p.height + this.gap)
-                        ) {
-                            gameOver();
-                        }
-                    }
-                }
-            },
-            
-            reset: function() {
-                this.position = [];
-            }
-        };
+        const obstacles = [];
+        let obstacleGap = 150;
+        let obstacleSpeed = 3;
+        let obstacleFrequency = 1500; // milliseconds
+        let lastObstacleTime = 0;
         
-        // Background elements
-        const background = {
-            draw: function() {
-                // Draw clouds
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-                ctx.beginPath();
-                ctx.arc(100, 80, 30, 0, Math.PI * 2);
-                ctx.arc(130, 70, 35, 0, Math.PI * 2);
-                ctx.arc(160, 80, 30, 0, Math.PI * 2);
-                ctx.fill();
-                
-                ctx.beginPath();
-                ctx.arc(300, 120, 30, 0, Math.PI * 2);
-                ctx.arc(330, 110, 35, 0, Math.PI * 2);
-                ctx.arc(360, 120, 30, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Draw sun
-                ctx.fillStyle = '#FFEB3B';
-                ctx.beginPath();
-                ctx.arc(350, 70, 40, 0, Math.PI * 2);
-                ctx.fill();
+        class Obstacle {
+            constructor() {
+                this.width = 60;
+                this.x = canvas.width;
+                this.topHeight = Math.floor(Math.random() * (canvas.height - obstacleGap - 100)) + 50;
+                this.bottomY = this.topHeight + obstacleGap;
+                this.bottomHeight = canvas.height - this.bottomY;
+                this.passed = false;
             }
-        };
+            
+            draw() {
+                // Top obstacle
+                ctx.fillStyle = '#228B22';
+                ctx.fillRect(this.x, 0, this.width, this.topHeight);
+                
+                // Bottom obstacle
+                ctx.fillRect(this.x, this.bottomY, this.width, this.bottomHeight);
+                
+                // Draw obstacle caps
+                ctx.fillStyle = '#006400';
+                ctx.fillRect(this.x - 5, this.topHeight - 20, this.width + 10, 20);
+                ctx.fillRect(this.x - 5, this.bottomY, this.width + 10, 20);
+            }
+            
+            update() {
+                this.x -= obstacleSpeed;
+                
+                // Check if passed
+                if (!this.passed && this.x + this.width < girl.x) {
+                    this.passed = true;
+                    score++;
+                    scoreDisplay.textContent = 'Score: ' + score;
+                }
+            }
+            
+            isOffScreen() {
+                return this.x + this.width < 0;
+            }
+            
+            collidesWith(girl) {
+                // Simple collision detection
+                return (
+                    girl.x + girl.radius > this.x &&
+                    girl.x - girl.radius < this.x + this.width &&
+                    (girl.y - girl.radius < this.topHeight ||
+                     girl.y + girl.radius > this.bottomY)
+                );
+            }
+        }
         
         // Game functions
-        function draw() {
+        function startGame() {
+            gameState = 'playing';
+            startScreen.style.display = 'none';
+            gameOverScreen.style.display = 'none';
+            score = 0;
+            scoreDisplay.textContent = 'Score: ' + score;
+            girl.y = canvas.height / 2;
+            girl.velocity = 0;
+            obstacles.length = 0;
+            lastObstacleTime = 0;
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function gameOver() {
+            gameState = 'gameover';
+            finalScoreDisplay.textContent = 'Score: ' + score;
+            gameOverScreen.style.display = 'flex';
+        }
+        
+        function gameLoop(timestamp) {
             // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Draw background
-            background.draw();
+            // Draw background elements
+            drawBackground();
             
-            // Draw ground
-            ground.draw();
-            
-            // Draw obstacles
-            obstacles.draw();
-            
-            // Draw human
-            human.draw();
-            
-            // Draw score
-            scoreDisplay.textContent = 'Score: ' + score;
-        }
-        
-        function update() {
-            human.update();
-            obstacles.update();
-        }
-        
-        function gameLoop() {
-            update();
-            draw();
-            frames++;
-            
-            if (gameRunning) {
+            if (gameState === 'playing') {
+                // Update and draw girl
+                girl.update();
+                girl.draw();
+                
+                // Generate obstacles
+                if (timestamp - lastObstacleTime > obstacleFrequency) {
+                    obstacles.push(new Obstacle());
+                    lastObstacleTime = timestamp;
+                }
+                
+                // Update and draw obstacles
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    obstacles[i].update();
+                    obstacles[i].draw();
+                    
+                    // Remove off-screen obstacles
+                    if (obstacles[i].isOffScreen()) {
+                        obstacles.splice(i, 1);
+                    }
+                    
+                    // Check collisions
+                    if (obstacles[i].collidesWith(girl)) {
+                        gameOver();
+                    }
+                }
+                
+                // Continue game loop
                 requestAnimationFrame(gameLoop);
             }
         }
         
-        function startGame() {
-            gameRunning = true;
-            score = 0;
-            frames = 0;
-            human.reset();
-            obstacles.reset();
-            startScreen.style.display = 'none';
-            gameOverScreen.style.display = 'none';
-            scoreDisplay.textContent = 'Score: 0';
-            gameLoop();
-        }
-        
-        function gameOver() {
-            gameRunning = false;
-            finalScoreDisplay.textContent = score;
-            gameOverScreen.style.display = 'flex';
+        function drawBackground() {
+            // Draw ground
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
+            
+            // Draw grass
+            ctx.fillStyle = '#228B22';
+            ctx.fillRect(0, canvas.height - 20, canvas.width, 5);
+            
+            // Draw clouds
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.beginPath();
+            ctx.arc(100, 80, 20, 0, Math.PI * 2);
+            ctx.arc(120, 70, 25, 0, Math.PI * 2);
+            ctx.arc(140, 80, 20, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(300, 120, 20, 0, Math.PI * 2);
+            ctx.arc(320, 110, 25, 0, Math.PI * 2);
+            ctx.arc(340, 120, 20, 0, Math.PI * 2);
+            ctx.fill();
         }
         
         // Event listeners
-        startButton.addEventListener('click', startGame);
-        restartButton.addEventListener('click', startGame);
+        canvas.addEventListener('click', function() {
+            if (gameState === 'playing') {
+                girl.flap();
+            }
+        });
         
-        // Jump on spacebar or click/tap
         document.addEventListener('keydown', function(e) {
             if (e.code === 'Space') {
-                if (gameRunning) {
-                    human.flap();
-                } else if (startScreen.style.display === 'flex') {
+                if (gameState === 'playing') {
+                    girl.flap();
+                } else if (gameState === 'start') {
+                    startGame();
+                } else if (gameState === 'gameover') {
                     startGame();
                 }
             }
         });
         
-        canvas.addEventListener('click', function() {
-            if (gameRunning) {
-                human.flap();
-            }
-        });
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', startGame);
         
-        // Initial draw
-        draw();
+        // Initialize game
+        drawBackground();
     </script>
 </body>
 </html>
