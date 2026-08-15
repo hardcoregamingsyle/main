@@ -1,326 +1,381 @@
-// Girl Flapper - Main Game Logic
-(function() {
-    'use strict';
+/**
+ * Girl Flapper - A Flappy Bird-style game
+ * Main game logic module
+ */
 
-    const canvas = document.getElementById('game-canvas');
-    const ctx = canvas.getContext('2d');
-    const scoreDisplay = document.getElementById('score-display');
-    const startScreen = document.getElementById('start-screen');
-    const gameOverScreen = document.getElementById('game-over-screen');
-    const finalScoreEl = document.getElementById('final-score');
-    const highScoreEl = document.getElementById('high-score');
-    const startBtn = document.getElementById('start-btn');
-    const restartBtn = document.getElementById('restart-btn');
+// Game configuration constants
+const CONFIG = {
+    GRAVITY: 0.5,
+    JUMP_STRENGTH: -8,
+    PIPE_SPEED: 3,
+    PIPE_WIDTH: 60,
+    PIPE_GAP: 170,
+    PIPE_SPAWN_INTERVAL: 1500,
+    GAME_WIDTH: 400,
+    GAME_HEIGHT: 600,
+    GROUND_HEIGHT: 50
+};
 
-    // Game constants
-    const GRAVITY = 0.5;
-    const FLAP_STRENGTH = -8;
-    const PIPE_SPEED = 3;
-    const PIPE_SPAWN_INTERVAL = 2000;
-    const PIPE_GAP = 150;
-    const GIRL_WIDTH = 30;
-    const GIRL_HEIGHT = 30;
-    const PIPE_WIDTH = 60;
+// Character colors
+const CHARACTER_COLORS = {
+    SKIN: '#FFDAB9',
+    HAIR: '#E6C28F',
+    DRESS: '#FF69B4',
+    EYES: '#4A235A',
+    MOUTH: '#FF1493'
+};
 
-    // Game state
-    let gameState = 'menu'; // menu, playing, gameover
-    let score = 0;
-    let highScore = localStorage.getItem('girlFlapperHighScore') || 0;
-    let lastPipeSpawn = 0;
-
-    // Girl object
-    let girl = {
-        x: 100,
-        y: 300,
-        velocity: 0,
-        rotation: 0
-    };
-
-    // Pipes array
-    let pipes = [];
-
-    // Background clouds
-    let clouds = [];
-
-    // Initialize clouds
-    function initClouds() {
-        clouds = [];
-        for (let i = 0; i < 5; i++) {
-            clouds.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height / 2,
-                size: 30 + Math.random() * 40,
-                speed: 0.5 + Math.random() * 0.5
-            });
+class GirlFlapperGame {
+    constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        if (!this.canvas) {
+            throw new Error('Canvas element not found');
         }
-    }
-
-    // Draw girl character
-    function drawGirl() {
-        ctx.save();
-        ctx.translate(girl.x + GIRL_WIDTH / 2, girl.y + GIRL_HEIGHT / 2);
         
-        // Rotation based on velocity
-        girl.rotation = Math.min(Math.PI / 4, Math.max(-Math.PI / 4, girl.velocity * 0.1));
-        ctx.rotate(girl.rotation);
-
-        // Body/Dress
-        ctx.fillStyle = '#ff69b4';
-        ctx.beginPath();
-        ctx.moveTo(0, -10);
-        ctx.lineTo(GIRL_WIDTH / 2, 15);
-        ctx.lineTo(-GIRL_WIDTH / 2, 15);
-        ctx.closePath();
-        ctx.fill();
-
-        // Head
-        ctx.fillStyle = '#ffe4c4';
-        ctx.beginPath();
-        ctx.arc(0, -15, 12, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Hair
-        ctx.fillStyle = '#8b4513';
-        ctx.beginPath();
-        ctx.arc(0, -17, 13, Math.PI, Math.PI * 2);
-        ctx.fill();
-
-        // Face details
-        ctx.fillStyle = '#333';
-        ctx.beginPath();
-        ctx.arc(-4, -15, 1.5, 0, Math.PI * 2); // Left eye
-        ctx.arc(4, -15, 1.5, 0, Math.PI * 2);  // Right eye
-        ctx.fill();
-
-        // Blush
-        ctx.fillStyle = '#ffb6c1';
-        ctx.beginPath();
-        ctx.arc(-6, -12, 2, 0, Math.PI * 2);
-        ctx.arc(6, -12, 2, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Bow/Hair accessory
-        ctx.fillStyle = '#ff69b4';
-        ctx.beginPath();
-        ctx.arc(0, -22, 5, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.restore();
-    }
-
-    // Draw pipe
-    function drawPipe(pipe) {
-        ctx.fillStyle = '#e91e63';
+        this.ctx = this.canvas.getContext('2d');
+        this.gameWidth = CONFIG.GAME_WIDTH;
+        this.gameHeight = CONFIG.GAME_HEIGHT;
         
-        // Top pipe
-        ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.topHeight);
-        ctx.strokeStyle = '#c2185b';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(pipe.x, 0, PIPE_WIDTH, pipe.topHeight);
-
-        // Bottom pipe
-        ctx.fillRect(pipe.x, canvas.height - pipe.bottomHeight, PIPE_WIDTH, pipe.bottomHeight);
-        ctx.strokeRect(pipe.x, canvas.height - pipe.bottomHeight, PIPE_WIDTH, pipe.bottomHeight);
-
-        // Pipe caps
-        ctx.fillStyle = '#f48fb1';
-        ctx.fillRect(pipe.x - 3, pipe.topHeight - 20, PIPE_WIDTH + 6, 20);
-        ctx.fillRect(pipe.x - 3, canvas.height - pipe.bottomHeight, PIPE_WIDTH + 6, 20);
-    }
-
-    // Draw background clouds
-    function drawClouds() {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-        clouds.forEach(cloud => {
-            ctx.beginPath();
-            ctx.arc(cloud.x, cloud.y, cloud.size, 0, Math.PI * 2);
-            ctx.arc(cloud.x + cloud.size * 0.5, cloud.y - cloud.size * 0.3, cloud.size * 0.7, 0, Math.PI * 2);
-            ctx.arc(cloud.x - cloud.size * 0.5, cloud.y - cloud.size * 0.3, cloud.size * 0.7, 0, Math.PI * 2);
-            ctx.fill();
-        });
-    }
-
-    // Update clouds
-    function updateClouds() {
-        if (gameState !== 'playing') return;
+        // Set canvas dimensions
+        this.canvas.width = this.gameWidth;
+        this.canvas.height = this.gameHeight;
         
-        clouds.forEach(cloud => {
-            cloud.x -= cloud.speed;
-            if (cloud.x + cloud.size * 2 < 0) {
-                cloud.x = canvas.width + cloud.size;
-                cloud.y = Math.random() * canvas.height / 2;
+        // Game state
+        this.isPlaying = false;
+        this.isGameOver = false;
+        this.score = 0;
+        this.highScore = this.loadHighScore();
+        this.pipes = [];
+        this.lastPipeSpawn = 0;
+        
+        // Girl character state
+        this.girl = {
+            x: 80,
+            y: this.gameHeight / 2,
+            width: 40,
+            height: 30,
+            velocity: 0
+        };
+        
+        // Setup event listeners
+        this.setupEventListeners();
+    }
+    
+    setupEventListeners() {
+        // Spacebar jump
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                this.jump();
             }
         });
-    }
-
-    // Spawn new pipe
-    function spawnPipe(timestamp) {
-        if (timestamp - lastPipeSpawn > PIPE_SPAWN_INTERVAL) {
-            const minHeight = 100;
-            const maxHeight = canvas.height - PIPE_GAP - minHeight;
-            const topHeight = minHeight + Math.random() * (maxHeight - minHeight);
-            
-            pipes.push({
-                x: canvas.width,
-                topHeight: topHeight,
-                bottomHeight: canvas.height - PIPE_GAP - topHeight,
-                passed: false
-            });
-            
-            lastPipeSpawn = timestamp;
-        }
-    }
-
-    // Update pipes
-    function updatePipes() {
-        if (gameState !== 'playing') return;
         
-        pipes.forEach((pipe, index) => {
-            pipe.x -= PIPE_SPEED;
-            
-            // Check if passed
-            if (!pipe.passed && pipe.x + PIPE_WIDTH < girl.x) {
-                pipe.passed = true;
-                score++;
-                scoreDisplay.textContent = `Score: ${score}`;
-            }
-            
-            // Remove off-screen pipes
-            if (pipe.x + PIPE_WIDTH < 0) {
-                pipes.splice(index, 1);
-            }
+        // Click/tap jump
+        this.canvas.addEventListener('mousedown', () => this.jump());
+        this.canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.jump();
         });
     }
-
-    // Collision detection
-    function checkCollision() {
-        // Ground collision
-        if (girl.y + GIRL_HEIGHT > canvas.height) {
-            return true;
-        }
-        
-        // Ceiling collision
-        if (girl.y < 0) {
-            return true;
-        }
-        
-        // Pipe collision
-        for (let pipe of pipes) {
-            if (
-                girl.x < pipe.x + PIPE_WIDTH &&
-                girl.x + GIRL_WIDTH > pipe.x &&
-                (
-                    girl.y < pipe.topHeight ||
-                    girl.y + GIRL_HEIGHT > canvas.height - pipe.bottomHeight
-                )
-            ) {
-                return true;
-            }
-        }
-        
-        return false;
-    }
-
-    // Flap action
-    function flap() {
-        if (gameState === 'playing') {
-            girl.velocity = FLAP_STRENGTH;
+    
+    loadHighScore() {
+        try {
+            const saved = localStorage.getItem('girlFlapperHighScore');
+            return saved ? parseInt(saved, 10) : 0;
+        } catch (e) {
+            return 0;
         }
     }
-
-    // Start game
-    function startGame() {
-        gameState = 'playing';
-        score = 0;
-        scoreDisplay.textContent = 'Score: 0';
-        girl.y = 300;
-        girl.velocity = 0;
-        pipes = [];
-        lastPipeSpawn = performance.now();
-        startScreen.style.display = 'none';
-        gameOverScreen.style.display = 'none';
-        loop();
-    }
-
-    // Game over
-    function gameOver() {
-        gameState = 'gameover';
-        
-        if (score > highScore) {
-            highScore = score;
-            localStorage.setItem('girlFlapperHighScore', highScore);
+    
+    saveHighScore(score) {
+        try {
+            localStorage.setItem('girlFlapperHighScore', score.toString());
+        } catch (e) {
+            // Ignore storage errors
         }
-        
-        finalScoreEl.textContent = score;
-        highScoreEl.textContent = highScore;
-        gameOverScreen.style.display = 'block';
     }
-
-    // Main game loop
-    function loop(timestamp) {
-        if (gameState !== 'playing') return;
+    
+    reset() {
+        this.girl.y = this.gameHeight / 2;
+        this.girl.velocity = 0;
+        this.pipes = [];
+        this.score = 0;
+        this.lastPipeSpawn = 0;
+        this.isPlaying = true;
+        this.isGameOver = false;
+    }
+    
+    jump() {
+        if (this.isPlaying && !this.isGameOver) {
+            this.girl.velocity = CONFIG.JUMP_STRENGTH;
+        }
+    }
+    
+    spawnPipe() {
+        const minHeight = 50;
+        const maxHeight = this.gameHeight - CONFIG.GROUND_HEIGHT - CONFIG.PIPE_GAP - minHeight;
+        const topHeight = Math.random() * (maxHeight - minHeight) + minHeight;
         
-        // Clear canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Update physics
-        girl.velocity += GRAVITY;
-        girl.y += girl.velocity;
-        
-        // Spawn and update pipes
-        spawnPipe(timestamp);
-        updateClouds();
-        updatePipes();
-        
-        // Draw everything
-        drawClouds();
-        pipes.forEach(drawPipe);
-        drawGirl();
-        
-        // Check collisions
-        if (checkCollision()) {
-            gameOver();
+        this.pipes.push({
+            x: this.gameWidth,
+            topHeight: topHeight,
+            bottomY: topHeight + CONFIG.PIPE_GAP,
+            passed: false
+        });
+    }
+    
+    update(timestamp) {
+        if (!this.isPlaying || this.isGameOver) {
             return;
         }
         
-        requestAnimationFrame(loop);
-    }
-
-    // Event listeners
-    startBtn.addEventListener('click', startGame);
-    restartBtn.addEventListener('click', startGame);
-    
-    window.addEventListener('keydown', (e) => {
-        if (e.code === 'Space') {
-            e.preventDefault();
-            if (gameState === 'menu') {
-                startGame();
-            } else if (gameState === 'playing') {
-                flap();
-            } else if (gameState === 'gameover') {
-                startGame();
+        // Update girl physics
+        this.girl.velocity += CONFIG.GRAVITY;
+        this.girl.y += this.girl.velocity;
+        
+        // Check ground collision
+        if (this.girl.y + this.girl.height > this.gameHeight - CONFIG.GROUND_HEIGHT) {
+            this.girl.y = this.gameHeight - CONFIG.GROUND_HEIGHT - this.girl.height;
+            this.girl.velocity = 0;
+            this.endGame();
+        }
+        
+        // Check ceiling collision
+        if (this.girl.y < 0) {
+            this.girl.y = 0;
+            this.girl.velocity = 0;
+        }
+        
+        // Spawn pipes at intervals
+        if (timestamp - this.lastPipeSpawn > CONFIG.PIPE_SPAWN_INTERVAL) {
+            this.spawnPipe();
+            this.lastPipeSpawn = timestamp;
+        }
+        
+        // Update pipes
+        for (let i = this.pipes.length - 1; i >= 0; i--) {
+            const pipe = this.pipes[i];
+            pipe.x -= CONFIG.PIPE_SPEED;
+            
+            // Check if pipe has passed
+            if (!pipe.passed && pipe.x + CONFIG.PIPE_WIDTH < this.girl.x) {
+                pipe.passed = true;
+                this.score++;
+            }
+            
+            // Remove off-screen pipes
+            if (pipe.x + CONFIG.PIPE_WIDTH < 0) {
+                this.pipes.splice(i, 1);
+                continue;
+            }
+            
+            // Collision detection
+            if (this.checkCollision(pipe)) {
+                this.endGame();
             }
         }
-    });
-    
-    canvas.addEventListener('mousedown', () => {
-        if (gameState === 'playing') {
-            flap();
+        
+        // Update high score
+        if (this.score > this.highScore) {
+            this.highScore = this.score;
+            this.saveHighScore(this.highScore);
         }
-    });
+    }
     
-    canvas.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        if (gameState === 'playing') {
-            flap();
+    checkCollision(pipe) {
+        // Horizontal overlap
+        const horizontalOverlap = (
+            this.girl.x < pipe.x + CONFIG.PIPE_WIDTH &&
+            this.girl.x + this.girl.width > pipe.x
+        );
+        
+        if (!horizontalOverlap) return false;
+        
+        // Vertical collision (hit top pipe OR hit bottom pipe)
+        const hitTopPipe = this.girl.y < pipe.topHeight;
+        const hitBottomPipe = this.girl.y + this.girl.height > pipe.bottomY;
+        
+        return hitTopPipe || hitBottomPipe;
+    }
+    
+    endGame() {
+        this.isPlaying = false;
+        this.isGameOver = true;
+        this.saveHighScore(Math.max(this.score, this.highScore));
+    }
+    
+    draw() {
+        // Clear canvas
+        this.ctx.clearRect(0, 0, this.gameWidth, this.gameHeight);
+        
+        // Draw gradient sky background
+        const gradient = this.ctx.createLinearGradient(0, 0, 0, this.gameHeight);
+        gradient.addColorStop(0, '#FFE4E1');
+        gradient.addColorStop(1, '#FFB6C1');
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(0, 0, this.gameWidth, this.gameHeight);
+        
+        // Draw ground
+        this.ctx.fillStyle = '#90EE90';
+        this.ctx.fillRect(0, this.gameHeight - CONFIG.GROUND_HEIGHT, this.gameWidth, CONFIG.GROUND_HEIGHT);
+        
+        // Draw grass detail
+        this.ctx.fillStyle = '#228B22';
+        this.ctx.fillRect(0, this.gameHeight - CONFIG.GROUND_HEIGHT, this.gameWidth, 10);
+        
+        // Draw pipes
+        this.drawPipes();
+        
+        // Draw girl character
+        this.drawGirl();
+        
+        // Draw UI
+        this.drawUI();
+    }
+    
+    drawPipes() {
+        this.ctx.fillStyle = '#FF1493'; // Hot pink color
+        
+        for (const pipe of this.pipes) {
+            // Top pipe
+            this.ctx.fillRect(pipe.x, 0, CONFIG.PIPE_WIDTH, pipe.topHeight);
+            
+            // Bottom pipe
+            this.ctx.fillRect(
+                pipe.x,
+                pipe.bottomY,
+                CONFIG.PIPE_WIDTH,
+                this.gameHeight - CONFIG.GROUND_HEIGHT - pipe.bottomY
+            );
+            
+            // Pipe caps
+            this.ctx.fillStyle = '#C71585';
+            this.ctx.fillRect(pipe.x - 5, pipe.topHeight - 20, CONFIG.PIPE_WIDTH + 10, 20);
+            this.ctx.fillRect(pipe.x - 5, pipe.bottomY, CONFIG.PIPE_WIDTH + 10, 20);
+            this.ctx.fillStyle = '#FF1493';
         }
-    });
+    }
+    
+    drawGirl() {
+        const { x, y, width, height } = this.girl;
+        const centerX = x + width / 2;
+        const centerY = y + height / 2;
+        
+        // Draw dress body
+        this.ctx.fillStyle = CHARACTER_COLORS.DRESS;
+        this.ctx.beginPath();
+        this.ctx.moveTo(centerX, y + height * 0.7);
+        this.ctx.lineTo(x, y + height);
+        this.ctx.lineTo(x + width, y + height);
+        this.ctx.fill();
+        
+        // Draw head
+        this.ctx.fillStyle = CHARACTER_COLORS.SKIN;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, y + height * 0.4, width * 0.35, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Draw hair
+        this.ctx.fillStyle = CHARACTER_COLORS.HAIR;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, y + height * 0.4, width * 0.38, Math.PI, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.beginPath();
+        this.ctx.arc(centerX - width * 0.35, y + height * 0.45, width * 0.1, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.beginPath();
+        this.ctx.arc(centerX + width * 0.35, y + height * 0.45, width * 0.1, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Draw eyes
+        this.ctx.fillStyle = CHARACTER_COLORS.EYES;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX - width * 0.12, y + height * 0.4, width * 0.08, 0, Math.PI * 2);
+        this.ctx.arc(centerX + width * 0.12, y + height * 0.4, width * 0.08, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Draw mouth
+        this.ctx.strokeStyle = CHARACTER_COLORS.MOUTH;
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, y + height * 0.5, width * 0.1, 0, Math.PI, false);
+        this.ctx.stroke();
+        
+        // Draw arms
+        this.ctx.strokeStyle = CHARACTER_COLORS.DRESS;
+        this.ctx.lineWidth = 4;
+        this.ctx.beginPath();
+        this.ctx.moveTo(x + width * 0.2, y + height * 0.7);
+        this.ctx.lineTo(x + width * 0.2, y + height * 0.85);
+        this.ctx.stroke();
+        
+        this.ctx.beginPath();
+        this.ctx.moveTo(x + width * 0.8, y + height * 0.7);
+        this.ctx.lineTo(x + width * 0.8, y + height * 0.85);
+        this.ctx.stroke();
+    }
+    
+    drawUI() {
+        // Draw score
+        this.ctx.fillStyle = '#4A235A';
+        this.ctx.font = 'bold 24px Arial';
+        this.ctx.textAlign = 'left';
+        this.ctx.fillText(`Score: ${this.score}`, 20, 40);
+        
+        // Draw high score
+        this.ctx.textAlign = 'right';
+        this.ctx.fillText(`High Score: ${this.highScore}`, this.gameWidth - 20, 40);
+        
+        // Draw game over message
+        if (this.isGameOver) {
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            this.ctx.fillRect(0, 0, this.gameWidth, this.gameHeight);
+            
+            this.ctx.fillStyle = '#FFFFFF';
+            this.ctx.font = 'bold 36px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText('GAME OVER', this.gameWidth / 2, this.gameHeight / 2 - 50);
+            
+            this.ctx.font = '24px Arial';
+            this.ctx.fillText(`Final Score: ${this.score}`, this.gameWidth / 2, this.gameHeight / 2);
+            this.ctx.fillText(`High Score: ${this.highScore}`, this.gameWidth / 2, this.gameHeight / 2 + 40);
+            
+            this.ctx.font = '18px Arial';
+            this.ctx.fillText('Click or Press SPACE to restart', this.gameWidth / 2, this.gameHeight / 2 + 90);
+        }
+    }
+    
+    start() {
+        this.reset();
+        this.loop(0);
+    }
+    
+    loop(timestamp) {
+        if (!this.isPlaying) return;
+        
+        this.update(timestamp);
+        this.draw();
+        
+        requestAnimationFrame((ts) => this.loop(ts));
+    }
+    
+    getGameState() {
+        return {
+            isPlaying: this.isPlaying,
+            isGameOver: this.isGameOver,
+            score: this.score,
+            highScore: this.highScore,
+            girlPosition: {
+                x: this.girl.x,
+                y: this.girl.y,
+                velocity: this.girl.velocity
+            },
+            pipeCount: this.pipes.length
+        };
+    }
+}
 
-    // Initialize
-    initClouds();
-    
-    // Initial render
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawClouds();
-    drawGirl();
-})();
+// Export for testing
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { GirlFlapperGame, CONFIG, CHARACTER_COLORS };
+}
