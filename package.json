@@ -4,7 +4,7 @@
   "description": "Flappy Bird style game with a girl overcoming obstacles",
   "main": "src/index.html",
   "scripts": {
-    "start": "npx http-server -p 3000 -c-1",
+    "start": "npx http-server -p 3000 -c-1 ./src",
     "test": "jest --coverage"
   },
   "keywords": ["game", "flappy-bird", "javascript", "girl"],
