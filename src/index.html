@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" "content-width=device-width, initial-scale=1.0">
     <title>Girl Flapper</title>
     <style>
         * {
@@ -26,11 +26,10 @@
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
             border-radius: 10px;
             overflow: hidden;
+            background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 100%);
         }
-        #gameCanvas {
+        canvas {
             display: block;
-            width: 100%;
-            height: 100%;
         }
         #ui-layer {
             position: absolute;
@@ -49,18 +48,9 @@
             font-weight: bold;
             color: white;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            z-index: 10;
         }
-        #high-score-display {
-            position: absolute;
-            top: 70px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 18px;
-            color: #ffd700;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-        }
-        #start-screen,
-        #game-over-screen {
+        #start-screen, #game-over-screen {
             position: absolute;
             top: 0;
             left: 0;
@@ -72,68 +62,75 @@
             justify-content: center;
             align-items: center;
             pointer-events: auto;
+            z-index: 20;
         }
         #game-over-screen {
             display: none;
         }
-        h1 {
-            color: white;
+        .screen-title {
             font-size: 36px;
+            font-weight: bold;
+            color: white;
             margin-bottom: 20px;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         }
-        p {
-            color: #ffd700;
+        .screen-subtitle {
             font-size: 18px;
-            margin-bottom: 15px;
+            color: #ffd700;
+            margin-bottom: 30px;
         }
-        button {
+        .btn {
             padding: 15px 40px;
             font-size: 20px;
-            background: linear-gradient(135deg, #ff6b6b, #feca57);
-            border: none;
-            border-radius: 25px;
+            font-weight: bold;
             color: white;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+            border: none;
+            border-radius: 30px;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
-            font-weight: bold;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            pointer-events: auto;
         }
-        button:hover {
+        .btn:hover {
             transform: scale(1.05);
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
         }
-        button:active {
+        .btn:active {
             transform: scale(0.95);
         }
-        .final-score {
-            font-size: 28px;
-            color: white;
-            margin-bottom: 20px;
+        #high-score-display {
+            font-size: 16px;
+            color: #ffd700;
+            margin-top: 10px;
         }
-        .instructions {
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: white;
             font-size: 14px;
-            color: #ccc;
-            margin-top: 15px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
         }
     </style>
 </head>
 <body>
     <div id="game-container">
-        <canvas id="gameCanvas" width="400" height="600"></canvas>
+        <canvas id="game-canvas" width="400" height="600"></canvas>
         <div id="ui-layer">
             <div id="score-display">0</div>
-            <div id="high-score-display">High Score: 0</div>
             <div id="start-screen">
-                <h1>Girl Flapper</h1>
-                <button id="start-btn">Start Game</button>
-                <p class="instructions">Press SPACE or CLICK to fly!</p>
+                <div class="screen-title">Girl Flapper</div>
+                <button class="btn" id="start-btn">Start Game</button>
+                <div id="instructions">Press SPACE or CLICK to fly!</div>
             </div>
             <div id="game-over-screen">
-                <h1>Game Over!</h1>
-                <p class="final-score">Score: <span id="final-score">0</span></p>
-                <p class="final-score" style="color: #ffd700;">High Score: <span id="final-high-score">0</span></p>
-                <button id="restart-btn">Play Again</button>
+                <div class="screen-title">Game Over</div>
+                <div class="screen-subtitle">Score: <span id="final-score">0</span></div>
+                <div id="high-score-display">High Score: <span id="high-score">0</span></div>
+                <br>
+                <button class="btn" id="restart-btn">Play Again</button>
             </div>
         </div>
     </div>
