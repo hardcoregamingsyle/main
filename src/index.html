@@ -28,88 +28,87 @@
             overflow: hidden;
         }
         #game-canvas {
-            background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 100%);
             display: block;
+            width: 100%;
+            height: 100%;
         }
-        #score-display {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 48px;
-            font-weight: bold;
-            color: white;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-            z-index: 10;
-        }
-        #start-screen, #game-over-screen {
+        #ui-layer {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
+            pointer-events: none;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: rgba(0, 0, 0, 0.7);
+        }
+        #score-display {
+            position: absolute;
+            top: 20px;
+            font-size: 48px;
+            font-weight: bold;
             color: white;
-            z-index: 20;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        #start-screen,
+        #game-over-screen {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            color: white;
+            pointer-events: auto;
+        }
+        #start-screen h1,
+        #game-over-screen h1 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            color: #ff69b4;
+        }
+        #start-screen p,
+        #game-over-screen p {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        .btn {
+            background: #ff69b4;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .btn:hover {
+            background: #ff1493;
+            transform: scale(1.05);
         }
         .hidden {
             display: none !important;
-        }
-        h1 {
-            font-size: 36px;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-        }
-        p {
-            font-size: 18px;
-            margin-bottom: 10px;
-        }
-        button {
-            padding: 15px 30px;
-            font-size: 20px;
-            background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);
-            color: white;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            margin-top: 20px;
-            transition: transform 0.2s;
-            box-shadow: 0 4px 15px rgba(255, 105, 180, 0.4);
-        }
-        button:hover {
-            transform: scale(1.05);
-        }
-        .high-score {
-            font-size: 24px;
-            color: #ffd700;
-            margin-top: 15px;
         }
     </style>
 </head>
 <body>
     <div id="game-container">
         <canvas id="game-canvas" width="400" height="600"></canvas>
-        <div id="score-display">0</div>
-        
-        <div id="start-screen">
-            <h1>🌸 Girl Flapper 🌸</h1>
-            <p>Press SPACE or CLICK to fly!</p>
-            <p>Avoid the pink pipes!</p>
-            <button id="start-button">Start Game</button>
-        </div>
-        
-        <div id="game-over-screen" class="hidden">
-            <h1>Game Over!</h1>
-            <p>Your Score: <span id="final-score">0</span></p>
-            <p class="high-score">High Score: <span id="high-score">0</span></p>
-            <button id="restart-button">Play Again</button>
+        <div id="ui-layer">
+            <div id="score-display">0</div>
+            <div id="start-screen">
+                <h1>Girl Flapper</h1>
+                <p>Press SPACE or CLICK to fly!</p>
+                <button class="btn" id="start-btn">Start Game</button>
+            </div>
+            <div id="game-over-screen" class="hidden">
+                <h1>Game Over!</h1>
+                <p>Score: <span id="final-score">0</span></p>
+                <p>Best: <span id="best-score">0</span></p>
+                <button class="btn" id="restart-btn">Play Again</button>
+            </div>
         </div>
     </div>
-    
     <script src="game.js"></script>
 </body>
 </html>
