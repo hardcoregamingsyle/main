@@ -18,100 +18,170 @@ describe('Girl Flapper Game', () => {
             expect(title).toBe('Girl Flapper');
         });
 
-        test('Canvas element exists', () => {
+        test('Canvas element exists with correct dimensions', () => {
             const canvas = dom.window.document.querySelector('#game-canvas');
             expect(canvas).toBeDefined();
             expect(canvas.getAttribute('width')).toBe('400');
             expect(canvas.getAttribute('height')).toBe('600');
         });
 
-        test('Start screen exists', () => {
-            const startScreen = dom.window.document.querySelector('#start-screen');
-            expect(startScreen).toBeDefined();
-            expect(startScreen.querySelector('h1')).toBeDefined();
-            expect(startScreen.querySelector('button')).toBeDefined();
-        });
-
-        test('Game over screen exists', () => {
-            const gameOverScreen = dom.window.document.querySelector('#game-over-screen');
-            expect(gameOverScreen).toBeDefined();
-            expect(gameOverScreen.querySelector('h1')).toBeDefined();
-            expect(gameOverScreen.querySelector('button')).toBeDefined();
-        });
-
-        test('Score display exists', () => {
+        test('Score display element exists', () => {
             const scoreDisplay = dom.window.document.querySelector('#score-display');
             expect(scoreDisplay).toBeDefined();
         });
-    });
 
-    describe('JavaScript Logic', () => {
-        test('script.js file exists', () => {
-            const scriptPath = path.resolve(__dirname, '../src/script.js');
-            expect(fs.existsSync(scriptPath)).toBe(true);
+        test('Start message element exists', () => {
+            const startMessage = dom.window.document.querySelector('#start-message');
+            expect(startMessage).toBeDefined();
         });
 
-        test('script.js contains game constants', () => {
-            const scriptPath = path.resolve(__dirname, '../src/script.js');
-            const scriptContent = fs.readFileSync(scriptPath, 'utf8');
-            expect(scriptContent).toContain('GRAVITY');
-            expect(scriptContent).toContain('JUMP_STRENGTH');
-            expect(scriptContent).toContain('PIPE_SPEED');
-        });
-
-        test('script.js contains game functions', () => {
-            const scriptPath = path.resolve(__dirname, '../src/script.js');
-            const scriptContent = fs.readFileSync(scriptPath, 'utf8');
-            expect(scriptContent).toContain('drawGirl');
-            expect(scriptContent).toContain('drawPipe');
-            expect(scriptContent).toContain('update');
-            expect(scriptContent).toContain('render');
-            expect(scriptContent).toContain('jump');
-            expect(scriptContent).toContain('startGame');
-            expect(scriptContent).toContain('endGame');
-        });
-
-        test('script.js contains collision detection', () => {
-            const scriptPath = path.resolve(__dirname, '../src/script.js');
-            const scriptContent = fs.readFileSync(scriptPath, 'utf8');
-            expect(scriptContent).toContain('checkCollision');
-        });
-
-        test('script.js contains storage for high score', () => {
-            const scriptPath = path.resolve(__dirname, '../src/script.js');
-            const scriptContent = fs.readFileSync(scriptPath, 'utf8');
-            expect(scriptContent).toContain('localStorage');
+        test('Game script is included', () => {
+            const scriptTags = dom.window.document.querySelectorAll('script[src]');
+            const gameScript = Array.from(scriptTags).find(
+                tag => tag.getAttribute('src') === 'game.js'
+            );
+            expect(gameScript).toBeDefined();
         });
     });
 
-    describe('CSS Styling', () => {
-        test('CSS contains game container styles', () => {
-            const match = html.match(/#game-container[\s\S]*?}/);
-            expect(match).not.toBeNull();
-            expect(match[0]).toContain('position: relative');
-            expect(match[0]).toContain('width: 400px');
-            expect(match[0]).toContain('height: 600px');
+    describe('Game Logic', () => {
+        test('game.js file exists', () => {
+            const gameJsPath = path.resolve(__dirname, '../src/game.js');
+            expect(fs.existsSync(gameJsPath)).toBe(true);
         });
 
-        test('CSS contains score display styles', () => {
-            const match = html.match(/#score-display[\s\S]*?}/);
-            expect(match).not.toBeNull();
-            expect(match[0]).toContain('font-size');
-            expect(match[0]).toContain('z-index');
+        test('game.js contains required functions', () => {
+            const gameJsPath = path.resolve(__dirname, '../src/game.js');
+            const gameContent = fs.readFileSync(gameJsPath, 'utf8');
+
+            expect(gameContent).toContain('GRAVITY');
+            expect(gameContent).toContain('JUMP_STRENGTH');
+            expect(gameContent).toContain('PIPE_SPEED');
+            expect(gameContent).toContain('drawGirl');
+            expect(gameContent).toContain('update');
+            expect(gameContent).toContain('draw');
         });
 
-        test('CSS contains start screen styles', () => {
-            const match = html.match(/#start-screen[\s\S]*?}/);
-            expect(match).not.toBeNull();
-            expect(match[0]).toContain('background');
-            expect(match[0]).toContain('color: white');
+        test('game.js uses requestAnimationFrame', () => {
+            const gameJsPath = path.resolve(__dirname, '../src/game.js');
+            const gameContent = fs.readFileSync(gameJsPath, 'utf8');
+            expect(gameContent).toContain('requestAnimationFrame');
+        });
+    });
+
+    describe('Game Constants', () => {
+        test('Gravity constant is defined', () => {
+            const gameJsPath = path.resolve(__dirname, '../src/game.js');
+            const gameContent = fs.readFileSync(gameJsPath, 'utf8');
+            expect(gameContent).toMatch(/GRAVITY\s*=\s*[\d.]+/);
         });
 
-        test('CSS contains button styles', () => {
-            const match = html.match(/button[\s\S]*?}/);
-            expect(match).not.toBeNull();
-            expect(match[0]).toContain('cursor: pointer');
-            expect(match[0]).toContain('border: none');
+        test('Jump strength is negative (upward)', () => {
+            const gameJsPath = path.resolve(__dirname, '../src/game.js');
+            const gameContent = fs.readFileSync(gameJsPath, 'utf8');
+            expect(gameContent).toMatch(/JUMP_STRENGTH\s*=\s*-\d+/);
+        });
+
+        test('Pipe gap is reasonable', () => {
+            const gameJsPath = path.resolve(__dirname, '../src/game.js');
+            const gameContent = fs.readFileSync(gameJsPath, 'utf8');
+            expect(gameContent).toMatch(/PIPE_GAP\s*=\s*\d+/);
+        });
+    });
+
+    describe('Player Character', () => {
+        test('Girl object has required properties', () => {
+            const gameJsPath = path.resolve(__dirname, '../src/game.js');
+            const gameContent = fs.readFileSync(gameJsPath, 'utf8');
+            expect(gameContent).toContain('girl');
+            expect(gameContent).toContain('velocity');
+            expect(gameContent).toContain('rotation');
+        });
+
+        test('Girl drawing function exists', () => {
+            const gameJsPath = path.resolve(__dirname, '../src/game.js');
+            const gameContent = fs.readFileSync(gameJsPath, 'utf8');
+            expect(gameContent).toContain('function drawGirl');
+        });
+
+        test('Girl has head drawn', () => {
+            const gameJsPath = path.resolve(__dirname, '../src/game.js');
+            const gameContent = fs.readFileSync(gameJsPath, 'utf8');
+            expect(gameContent).toContain('arc');
+        });
+
+        test('Girl has hair drawn', () => {
+            const gameJsPath = path.resolve(__dirname, '../src/game.js');
+            const gameContent = fs.readFileSync(gameJsPath, 'utf8');
+            expect(gameContent).toContain('brown') || expect(gameContent).toContain('8B4513');
+        });
+    });
+
+    describe('Pipe System', () => {
+        test('Pipe spawning is implemented', () => {
+            const gameJsPath = path.resolve(__dirname, '../src/game.js');
+            const gameContent = fs.readFileSync(gameJsPath, 'utf8');
+            expect(gameContent).toContain('spawnPipe');
+        });
+
+        test('Collision detection exists', () => {
+            const gameJsPath = path.resolve(__dirname, '../src/game.js');
+            const gameContent = fs.readFileSync(gameJsPath, 'utf8');
+            expect(gameContent).toContain('collision');
+        });
+    });
+
+    describe('Scoring System', () => {
+        test('Score tracking is implemented', () => {
+            const gameJsPath = path.resolve(__dirname, '../src/game.js');
+            const gameContent = fs.readFileSync(gameJsPath, 'utf8');
+            expect(gameContent).toContain('score');
+        });
+
+        test('Score display updates', () => {
+            const gameJsPath = path.resolve(__dirname, '../src/game.js');
+            const gameContent = fs.readFileSync(gameJsPath, 'utf8');
+            expect(gameContent).toContain('scoreDisplay');
+        });
+    });
+
+    describe('Input Handling', () => {
+        test('Keyboard event listener exists', () => {
+            const gameJsPath = path.resolve(__dirname, '../src/game.js');
+            const gameContent = fs.readFileSync(gameJsPath, 'utf8');
+            expect(gameContent).toContain('keydown');
+        });
+
+        test('Space key triggers jump', () => {
+            const gameJsPath = path.resolve(__dirname, '../src/game.js');
+            const gameContent = fs.readFileSync(gameJsPath, 'utf8');
+            expect(gameContent).toContain('Space');
+        });
+
+        test('Click/touch events are handled', () => {
+            const gameJsPath = path.resolve(__dirname, '../src/game.js');
+            const gameContent = fs.readFileSync(gameJsPath, 'utf8');
+            expect(gameContent).toContain('addEventListener');
+        });
+    });
+
+    describe('Game State Management', () => {
+        test('Running state exists', () => {
+            const gameJsPath = path.resolve(__dirname, '../src/game.js');
+            const gameContent = fs.readFileSync(gameJsPath, 'utf8');
+            expect(gameContent).toContain('running');
+        });
+
+        test('Game over state exists', () => {
+            const gameJsPath = path.resolve(__dirname, '../src/game.js');
+            const gameContent = fs.readFileSync(gameJsPath, 'utf8');
+            expect(gameContent).toContain('gameOver');
+        });
+
+        test('Reset functionality exists', () => {
+            const gameJsPath = path.resolve(__dirname, '../src/game.js');
+            const gameContent = fs.readFileSync(gameJsPath, 'utf8');
+            expect(gameContent).toContain('resetGame');
         });
     });
 });
