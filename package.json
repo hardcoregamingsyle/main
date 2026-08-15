@@ -1,9 +1,10 @@
 {
   "name": "girl-flapper",
   "version": "1.0.0",
-  "description": "Flappy Bird style game with a girl overcoming obstacles",
+  "description": "A Flappy Bird-style game where you control a cute girl character through pink pipe obstacles",
+  "main": "src/game.js",
   "scripts": {
-    "start": "npx http-server -p 3000 -c-1 ./src",
+    "start": "npx http-server -p 3000 -c-1 ./src --cors -a 0.0.0.0",
     "test": "jest --coverage"
   },
   "keywords": ["game", "flappy-bird", "javascript", "girl"],
