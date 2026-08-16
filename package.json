@@ -4,12 +4,18 @@
   "description": "A Flappy Bird-style game with a cute girl character",
   "main": "src/game.js",
   "scripts": {
-    "start": "npx serve src -l 3000",
+    "start": "npx serve src -l 3000 -s",
     "test": "jest",
-    "build": "echo 'Static site, no build step'"
+    "build": "echo 'Static site, no build step'",
+    "deploy:cf": "npx wrangler pages deploy src --project-name=girl-flapper"
   },
   "devDependencies": {
     "jest": "^29.7.0",
-    "jsdom": "^24.0.0"
+    "jsdom": "^24.0.0",
+    "serve": "^14.2.0",
+    "wrangler": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
