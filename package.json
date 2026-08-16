@@ -1,19 +1,4 @@
 {
   "name": "girl-flapper",
-  "version": "1.0.0",
-  "description": "A Flappy Bird-style game with a cute girl character",
-  "main": "src/game.js",
-  "scripts": {
-    "start": "npx serve src -l 3000",
-    "test": "jest",
-    "build": "echo Build complete",
-    "deploy": "echo Deploy complete"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "MIT",
-  "devDependencies": {
-    "jest": "^29.0.0",
-    "serve": "^14.0.0"
-  }
+  ...entire escaped JSON content...
 }
