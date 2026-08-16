@@ -1,1 +1,27 @@
-{...escaped JSON content...}
+{
+  "name": "girl-flapper",
+  "version": "1.0.0",
+  "description": "A Flappy Bird-style game with a cute girl character",
+  "main": "src/game.js",
+  "scripts": {
+    "start": "npx serve src -l 3000",
+    "test": "jest --verbose",
+    "test:watch": "jest --watch",
+    "build": "echo 'Static site - no build step required' && exit 0",
+    "deploy:cf": "wrangler pages deploy src --project-name=girl-flapper",
+    "preview": "wrangler pages dev src"
+  },
+  "keywords": ["game", "flappy-bird", "canvas", "html5"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "serve": "^14.2.1",
+    "wrangler": "^3.0.0"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "testMatch": ["**/tests/**/*.test.js"],
+    "collectCoverageFrom": ["src/game.js"]
+  }
+}
