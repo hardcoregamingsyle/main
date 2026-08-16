@@ -7,25 +7,17 @@ const PORT = process.env.PORT || 3000;
 // Serve static files from the src directory
 app.use(express.static(path.join(__dirname, 'src')));
 
-// Serve static files from the tests directory (for testing)
-app.use('/tests', express.static(path.join(__dirname, 'tests')));
-
-// Serve the main game page
+// Serve index.html for the root route
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'src', 'index.html'));
 });
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
-});
-
-// Error handling middleware
+// Error handling
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ error: 'Internal Server Error' });
+  res.status(500).send('Something broke!');
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Girl Flapper server running on http://0.0.0.0:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
