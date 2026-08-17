@@ -14,7 +14,6 @@
   "devDependencies": {
     "jest": "^29.7.0",
     "jsdom": "^24.0.0",
-    "canvas": "^2.11.2",
-    "image-loader": "1.0.0"
+    "canvas": "^2.11.2"
   }
 }
