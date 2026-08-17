@@ -1,9 +1,9 @@
 {
   "name": "girl-flapper",
   "version": "1.0.0",
-  "main": "src/index.js",
+  "main": "src/game.js",
   "scripts": {
-    "start": "serve -s . -l 3000",
+    "start": "npx serve -s . -l 3000",
     "test": "jest",
     "build": "webpack --mode production"
   },
