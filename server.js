@@ -1,103 +1,52 @@
-'use strict';
-
-const path = require('path');
 const express = require('express');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || '0.0.0.0';
-const PUBLIC_DIR = path.join(__dirname, 'src');
 
-// Security headers
+// Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", 'data:'],
-      connectSrc: ["'self'"],
-      objectSrc: ["'none'"],
-      baseUri: ["'self'"],
-      formAction: ["'self'"],
-      frameAncestors: ["'none'"],
-      upgradeInsecureRequests: []
-    }
+      imgSrc: ["'self'", "data:", "blob:"],
+    },
   },
-  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
-  referrerPolicy: { policy: 'no-referrer' },
-  noSniff: true,
-  xssFilter: true
 }));
 
-// Disable x-powered-by header
-app.disable('x-powered-by');
-
-// Rate limiting: 100 requests per 15 minutes per IP
+// Rate limiting: 100 requests per 15 minutes for general endpoints
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later.' },
-  handler: (req, res) => {
-    res.status(429).json({ error: 'Too many requests, please try again later.' });
-  }
 });
-app.use(limiter);
+app.use('/api/', limiter); // Apply to API routes
 
-// Only allow GET/HEAD requests; reject everything else
-app.use((req, res, next) => {
-  if (req.method !== 'GET' && req.method !== 'HEAD') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-  next();
-});
+// Serve static files from 'src' directory
+app.use(express.static(path.join(__dirname, 'src')));
 
-// Health endpoint
+// Health check endpoint
 app.get('/health', (req, res) => {
-  res.setHeader('Cache-Control', 'no-store');
-  res.json({ status: 'ok', uptime: process.uptime() });
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Static files (index.html, game.js, etc.)
-app.use(express.static(PUBLIC_DIR, {
-  index: 'index.html',
-  maxAge: '1h',
-  etag: true,
-  fallthrough: false
-}));
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ error: 'Not found' });
+// Fallback: redirect to index.html for SPA-like behavior
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'index.html'));
 });
 
-// Central error handler — no stack traces leaked
+// Global error handler
 app.use((err, req, res, next) => {
-  if (res.headersSent) {
-    return next(err);
-  }
-  console.error(`[server] error: ${err.message}`);
+  console.error('Unhandled error:', err.message);
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// Start server only when run directly (not when required by tests)
-if (require.main === module) {
-  const server = app.listen(PORT, HOST, () => {
-    console.log(`Girl Flapper server listening on http://${HOST}:${PORT}`);
-  });
-
-  const shutdown = () => {
-    console.log('Shutting down gracefully...');
-    server.close(() => process.exit(0));
-    setTimeout(() => process.exit(1), 5000).unref();
-  };
-
-  process.on('SIGTERM', shutdown);
-  process.on('SIGINT', shutdown);
-}
-
-module.exports = app;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on http://0.0.0.0:${PORT}`);
+});
