@@ -41,46 +41,43 @@ export class Pipe {
   constructor(x, canvasHeight) {
     this.x = x;
     this.width = 52;
-    this.gap = 150;
-    this.speed = 2;
-    this.passed = false;
-    
-    const minTop = 50;
-    const maxTop = canvasHeight - this.gap - 50;
-    this.topHeight = Math.random() * (maxTop - minTop) + minTop;
+    this.gap = 120;
+    this.topHeight = Math.floor(Math.random() * (canvasHeight - this.gap - 100)) + 50;
     this.bottomY = this.topHeight + this.gap;
-    this.bottomHeight = canvasHeight - this.bottomY;
+    this.speed = 2;
+    this.scored = false;
   }
 
   update() {
     this.x -= this.speed;
   }
 
-  draw(ctx, canvasHeight) {
-    ctx.fillStyle = '#2E8B57';
-    ctx.fillRect(this.x, 0, this.width, this.topHeight);
-    ctx.fillRect(this.x, this.bottomY, this.width, this.bottomHeight);
-    
+  draw(ctx) {
     ctx.fillStyle = '#228B22';
+    ctx.fillRect(this.x, 0, this.width, this.topHeight);
+    ctx.fillStyle = '#006400';
     ctx.fillRect(this.x - 2, this.topHeight - 20, this.width + 4, 20);
+
+    ctx.fillStyle = '#228B22';
+    ctx.fillRect(this.x, this.bottomY, this.width, ctx.canvas.height - this.bottomY);
+    ctx.fillStyle = '#006400';
     ctx.fillRect(this.x - 2, this.bottomY, this.width + 4, 20);
   }
 
-  getTopBounds() {
+  getBounds() {
     return {
-      x: this.x,
-      y: 0,
-      width: this.width,
-      height: this.topHeight
-    };
-  }
-
-  getBottomBounds() {
-    return {
-      x: this.x,
-      y: this.bottomY,
-      width: this.width,
-      height: this.bottomHeight
+      topPipe: {
+        x: this.x,
+        y: 0,
+        width: this.width,
+        height: this.topHeight
+      },
+      bottomPipe: {
+        x: this.x,
+        y: this.bottomY,
+        width: this.width,
+        height: 9999 // effectively infinite
+      }
     };
   }
 
@@ -93,179 +90,175 @@ export class Game {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
-    this.width = canvas.width;
-    this.height = canvas.height;
-    
-    this.bird = new Bird(50, this.height / 2);
+    this.bird = new Bird(50, canvas.height / 2 - 12);
     this.pipes = [];
     this.score = 0;
-    this.highScore = 0;
-    this.gameState = 'start';
-    this.pipeSpawnTimer = 0;
-    this.pipeSpawnInterval = 1500;
-    this.lastTime = 0;
-    
-    this.bindEvents();
+    this.isGameOver = false;
+    this.frameCount = 0;
+    this.pipeSpawnInterval = 100; // frames between pipes
+    this.bgX = 0;
+    this.bgSpeed = 1;
+
+    this.setupEventListeners();
+    this.loop = this.loop.bind(this);
   }
 
-  bindEvents() {
+  setupEventListeners() {
+    const handleInput = (e) => {
+      e.preventDefault();
+      if (this.isGameOver) {
+        this.reset();
+      } else {
+        this.bird.jump();
+      }
+    };
+
+    this.canvas.addEventListener('click', handleInput);
     document.addEventListener('keydown', (e) => {
-      if (e.code === 'Space') {
-        e.preventDefault();
-        this.handleInput();
+      if (e.code === 'Space' || e.code === 'ArrowUp') {
+        handleInput(e);
       }
     });
-
-    this.canvas.addEventListener('click', () => {
-      this.handleInput();
-    });
-
-    this.canvas.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      this.handleInput();
-    });
-  }
-
-  handleInput() {
-    if (this.gameState === 'start') {
-      this.gameState = 'playing';
-    } else if (this.gameState === 'playing') {
-      this.bird.jump();
-    } else if (this.gameState === 'gameover') {
-      this.reset();
-    }
   }
 
   reset() {
-    this.bird = new Bird(50, this.height / 2);
+    this.bird = new Bird(50, this.canvas.height / 2 - 12);
     this.pipes = [];
     this.score = 0;
-    this.gameState = 'start';
-    this.pipeSpawnTimer = 0;
+    this.isGameOver = false;
+    this.frameCount = 0;
+    this.bgX = 0;
   }
 
-  spawnPipe() {
-    this.pipes.push(new Pipe(this.width, this.height));
-  }
+  update() {
+    if (this.isGameOver) return;
 
-  checkCollision() {
-    const birdBounds = this.bird.getBounds();
-    
-    if (birdBounds.y <= 0 || birdBounds.y + birdBounds.height >= this.height) {
-      return true;
-    }
-
-    for (const pipe of this.pipes) {
-      const topBounds = pipe.getTopBounds();
-      const bottomBounds = pipe.getBottomBounds();
-
-      if (this.rectsCollide(birdBounds, topBounds) ||
-          this.rectsCollide(birdBounds, bottomBounds)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  rectsCollide(rect1, rect2) {
-    return rect1.x < rect2.x + rect2.width &&
-           rect1.x + rect1.width > rect2.x &&
-           rect1.y < rect2.y + rect2.height &&
-           rect1.y + rect1.height > rect2.y;
-  }
-
-  updateScore() {
-    for (const pipe of this.pipes) {
-      if (!pipe.passed && pipe.x + pipe.width < this.bird.x) {
-        pipe.passed = true;
-        this.score++;
-        if (this.score > this.highScore) {
-          this.highScore = this.score;
-        }
-      }
-    }
-  }
-
-  update(deltaTime) {
-    if (this.gameState !== 'playing') return;
-
+    this.frameCount++;
     this.bird.update();
 
-    this.pipeSpawnTimer += deltaTime;
-    if (this.pipeSpawnTimer >= this.pipeSpawnInterval) {
-      this.spawnPipe();
-      this.pipeSpawnTimer = 0;
+    // Spawn new pipes
+    if (this.frameCount % this.pipeSpawnInterval === 0) {
+      this.pipes.push(new Pipe(this.canvas.width, this.canvas.height));
     }
 
+    // Update pipes
     for (let i = this.pipes.length - 1; i >= 0; i--) {
-      this.pipes[i].update();
-      if (this.pipes[i].isOffScreen()) {
+      const pipe = this.pipes[i];
+      pipe.update();
+
+      // Check scoring
+      if (!pipe.scored && pipe.x + pipe.width < this.bird.x) {
+        pipe.scored = true;
+        this.score++;
+      }
+
+      // Remove off-screen pipes
+      if (pipe.isOffScreen()) {
         this.pipes.splice(i, 1);
       }
     }
 
+    // Collision detection
     if (this.checkCollision()) {
-      this.gameState = 'gameover';
+      this.isGameOver = true;
     }
 
-    this.updateScore();
+    // Ground/ceiling collision
+    if (this.bird.y + this.bird.height > this.canvas.height || this.bird.y < 0) {
+      this.isGameOver = true;
+    }
+
+    // Scroll background
+    this.bgX = (this.bgX - this.bgSpeed) % this.canvas.width;
+  }
+
+  checkCollision() {
+    const birdBounds = this.bird.getBounds();
+    for (const pipe of this.pipes) {
+      const pipeBounds = pipe.getBounds();
+      if (this.rectCollide(birdBounds, pipeBounds.topPipe) ||
+          this.rectCollide(birdBounds, pipeBounds.bottomPipe)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  rectCollide(a, b) {
+    return a.x < b.x + b.width &&
+           a.x + a.width > b.x &&
+           a.y < b.y + b.height &&
+           a.y + a.height > b.y;
   }
 
   draw() {
-    this.ctx.clearRect(0, 0, this.width, this.height);
+    const ctx = this.ctx;
+    const w = this.canvas.width;
+    const h = this.canvas.height;
 
-    this.ctx.fillStyle = '#87CEEB';
-    this.ctx.fillRect(0, 0, this.width, this.height);
+    // Sky gradient
+    const gradient = ctx.createLinearGradient(0, 0, 0, h);
+    gradient.addColorStop(0, '#4ec0ca');
+    gradient.addColorStop(1, '#7dd3e8');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, w, h);
 
-    for (const pipe of this.pipes) {
-      pipe.draw(this.ctx, this.height);
+    // Scrolling clouds
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    for (let i = 0; i < 3; i++) {
+      const cloudX = (this.bgX + i * 200) % (w + 100) - 50;
+      this.drawCloud(ctx, cloudX, 50 + i * 30);
     }
 
-    this.bird.draw(this.ctx);
+    // Ground
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(0, h - 20, w, 20);
+    ctx.fillStyle = '#228B22';
+    ctx.fillRect(0, h - 25, w, 10);
 
-    this.ctx.fillStyle = '#000';
-    this.ctx.font = '24px Arial';
-    this.ctx.fillText(`Score: ${this.score}`, 10, 30);
-    this.ctx.fillText(`High Score: ${this.highScore}`, 10, 60);
+    // Pipes
+    for (const pipe of this.pipes) {
+      pipe.draw(ctx);
+    }
 
-    if (this.gameState === 'start') {
-      this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-      this.ctx.fillRect(0, 0, this.width, this.height);
-      this.ctx.fillStyle = '#fff';
-      this.ctx.font = '36px Arial';
-      this.ctx.textAlign = 'center';
-      this.ctx.fillText('Flappy Bird', this.width / 2, this.height / 2 - 40);
-      this.ctx.font = '18px Arial';
-      this.ctx.fillText('Press SPACE, Click, or Tap to Start', this.width / 2, this.height / 2 + 20);
-      this.ctx.textAlign = 'left';
-    } else if (this.gameState === 'gameover') {
-      this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-      this.ctx.fillRect(0, 0, this.width, this.height);
-      this.ctx.fillStyle = '#fff';
-      this.ctx.font = '36px Arial';
-      this.ctx.textAlign = 'center';
-      this.ctx.fillText('Game Over', this.width / 2, this.height / 2 - 40);
-      this.ctx.font = '24px Arial';
-      this.ctx.fillText(`Final Score: ${this.score}`, this.width / 2, this.height / 2 + 10);
-      this.ctx.fillText(`High Score: ${this.highScore}`, this.width / 2, this.height / 2 + 50);
-      this.ctx.font = '18px Arial';
-      this.ctx.fillText('Press SPACE, Click, or Tap to Restart', this.width / 2, this.height / 2 + 100);
-      this.ctx.textAlign = 'left';
+    // Bird
+    this.bird.draw(ctx);
+
+    // Score
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 32px Arial';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 3;
+    ctx.strokeText(this.score, w / 2, 50);
+    ctx.fillText(this.score, w / 2, 50);
+
+    // Game over overlay
+    if (this.isGameOver) {
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 24px Arial';
+      ctx.fillText('Game Over', w / 2 - 80, h / 2 - 20);
+      ctx.font = '16px Arial';
+      ctx.fillText('Click or press Space to restart', w / 2 - 130, h / 2 + 20);
     }
   }
 
-  loop(timestamp) {
-    const deltaTime = timestamp - this.lastTime;
-    this.lastTime = timestamp;
+  drawCloud(ctx, x, y) {
+    ctx.beginPath();
+    ctx.arc(x, y, 20, 0, Math.PI * 2);
+    ctx.arc(x + 20, y - 10, 25, 0, Math.PI * 2);
+    ctx.arc(x + 40, y, 20, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
-    this.update(deltaTime);
+  loop() {
+    this.update();
     this.draw();
-
-    requestAnimationFrame((ts) => this.loop(ts));
+    requestAnimationFrame(this.loop);
   }
 
   start() {
-    requestAnimationFrame((ts) => this.loop(ts));
+    this.loop();
   }
 }
