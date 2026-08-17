@@ -2,111 +2,30 @@ class Game {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
-    this.bird = { x: 80, y: 300, width: 30, height: 30, velocity: 0 };
-    this.gravity = 0.5;
-    this.jumpStrength = -8;
+    this.width = canvas.width;
+    this.height = canvas.height;
+    this.bird = { x: 50, y: this.height / 2, radius: 15, velocity: 0, gravity: 0.5, jump: -8 };
     this.pipes = [];
-    this.pipeGap = 150;
-    this.pipeWidth = 50;
-    this.pipeSpeed = 2;
     this.score = 0;
     this.gameOver = false;
     this.gameStarted = false;
-    this.frame = 0;
+    this.pipeGap = 150;
+    this.pipeWidth = 60;
+    this.pipeSpeed = 2;
+    this.frameCount = 0;
+    this.spawnInterval = 100;
+    this.boundHandleInput = this.handleInput.bind(this);
   }
 
   start() {
-    this.gameStarted = true;
-    this.loop();
+    this.gameLoop();
   }
 
-  loop() {
-    if (!this.gameStarted) return;
+  gameLoop() {
     this.update();
     this.draw();
     if (!this.gameOver) {
-      requestAnimationFrame(() => this.loop());
-    }
-  }
-
-  update() {
-    if (this.gameOver) return;
-    this.bird.velocity += this.gravity;
-    this.bird.y += this.bird.velocity;
-    if (this.bird.y < 0) {
-      this.bird.y = 0;
-      this.bird.velocity = 0;
-    }
-    if (this.bird.y + this.bird.height > this.canvas.height) {
-      this.gameOver = true;
-    }
-    this.frame++;
-    if (this.frame % 100 === 0) {
-      const pipeHeight = Math.random() * (this.canvas.height - this.pipeGap - 100) + 50;
-      this.pipes.push({
-        x: this.canvas.width,
-        topHeight: pipeHeight,
-        bottomY: pipeHeight + this.pipeGap,
-        passed: false
-      });
-    }
-    for (let i = this.pipes.length - 1; i >= 0; i--) {
-      const pipe = this.pipes[i];
-      pipe.x -= this.pipeSpeed;
-      if (pipe.x + this.pipeWidth < 0) {
-        this.pipes.splice(i, 1);
-        continue;
-      }
-      if (!pipe.passed && pipe.x + this.pipeWidth < this.bird.x) {
-        pipe.passed = true;
-        this.score++;
-      }
-      if (
-        this.bird.x < pipe.x + this.pipeWidth &&
-        this.bird.x + this.bird.width > pipe.x &&
-        (this.bird.y < pipe.topHeight || this.bird.y + this.bird.height > pipe.bottomY)
-      ) {
-        this.gameOver = true;
-      }
-    }
-    if (this.bird.y + this.bird.height >= this.canvas.height) {
-      this.gameOver = true;
-    }
-  }
-
-  draw() {
-    this.ctx.fillStyle = '#70c5ce';
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    this.ctx.fillStyle = '#deb887';
-    this.ctx.fillRect(0, this.canvas.height - 20, this.canvas.width, 20);
-    this.ctx.fillStyle = '#228b22';
-    for (const pipe of this.pipes) {
-      this.ctx.fillRect(pipe.x, 0, this.pipeWidth, pipe.topHeight);
-      this.ctx.fillRect(pipe.x, pipe.bottomY, this.pipeWidth, this.canvas.height - pipe.bottomY);
-      this.ctx.fillStyle = '#2e8b57';
-      this.ctx.fillRect(pipe.x - 5, pipe.topHeight - 20, this.pipeWidth + 10, 20);
-      this.ctx.fillRect(pipe.x - 5, pipe.bottomY, this.pipeWidth + 10, 20);
-      this.ctx.fillStyle = '#228b22';
-    }
-    this.ctx.fillStyle = '#ffd700';
-    this.ctx.beginPath();
-    this.ctx.arc(this.bird.x + this.bird.width / 2, this.bird.y + this.bird.height / 2, this.bird.width / 2, 0, Math.PI * 2);
-    this.ctx.fill();
-    this.ctx.fillStyle = '#000';
-    this.ctx.beginPath();
-    this.ctx.arc(this.bird.x + this.bird.width * 0.7, this.bird.y + this.bird.height * 0.3, 4, 0, Math.PI * 2);
-    this.ctx.fill();
-    this.ctx.fillStyle = '#fff';
-    this.ctx.font = 'bold 30px Arial';
-    this.ctx.fillText(this.score, this.canvas.width / 2, 50);
-    if (this.gameOver) {
-      this.ctx.fillStyle = 'rgba(0,0,0,0.5)';
-      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-      this.ctx.fillStyle = '#fff';
-      this.ctx.font = 'bold 40px Arial';
-      this.ctx.fillText('Game Over', this.canvas.width / 2 - 100, this.canvas.height / 2 - 20);
-      this.ctx.font = '20px Arial';
-      this.ctx.fillText('Press Space to restart', this.canvas.width / 2 - 80, this.canvas.height / 2 + 30);
+      requestAnimationFrame(() => this.gameLoop());
     }
   }
 
@@ -115,22 +34,138 @@ class Game {
       this.reset();
       return;
     }
-    if (this.gameStarted) {
-      this.bird.velocity = this.jumpStrength;
-    }
+    this.gameStarted = true;
+    this.bird.velocity = this.bird.jump;
   }
 
   reset() {
-    this.bird = { x: 80, y: 300, width: 30, height: 30, velocity: 0 };
+    this.bird = { x: 50, y: this.height / 2, radius: 15, velocity: 0, gravity: 0.5, jump: -8 };
     this.pipes = [];
     this.score = 0;
-    this.frame = 0;
     this.gameOver = false;
-    this.gameStarted = true;
-    this.loop();
+    this.gameStarted = false;
+    this.frameCount = 0;
+    this.gameLoop();
+  }
+
+  update() {
+    if (!this.gameStarted || this.gameOver) return;
+
+    this.bird.velocity += this.bird.gravity;
+    this.bird.y += this.bird.velocity;
+
+    // Check boundaries
+    if (this.bird.y - this.bird.radius < 0 || this.bird.y + this.bird.radius > this.height) {
+      this.gameOver = true;
+    }
+
+    // Spawn pipes
+    if (this.frameCount % this.spawnInterval === 0) {
+      this.spawnPipe();
+    }
+
+    // Move pipes
+    for (let i = this.pipes.length - 1; i >= 0; i--) {
+      this.pipes[i].x -= this.pipeSpeed;
+      if (this.pipes[i].x + this.pipeWidth < 0) {
+        this.pipes.splice(i, 1);
+        this.score++;
+      }
+    }
+
+    // Collision detection
+    for (let pipe of this.pipes) {
+      if (this.collides(this.bird, pipe)) {
+        this.gameOver = true;
+      }
+    }
+
+    this.frameCount++;
+  }
+
+  spawnPipe() {
+    const minHeight = 50;
+    const maxHeight = this.height - this.pipeGap - minHeight;
+    const topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
+    this.pipes.push({
+      x: this.width,
+      topHeight: topHeight,
+      bottomY: topHeight + this.pipeGap
+    });
+  }
+
+  collides(bird, pipe) {
+    // Bird is a circle, pipe is a rectangle
+    // Check if bird's bounding box overlaps with pipe
+    const birdLeft = bird.x - bird.radius;
+    const birdRight = bird.x + bird.radius;
+    const birdTop = bird.y - bird.radius;
+    const birdBottom = bird.y + bird.radius;
+
+    // Top pipe
+    const topPipeLeft = pipe.x;
+    const topPipeRight = pipe.x + this.pipeWidth;
+    const topPipeTop = 0;
+    const topPipeBottom = pipe.topHeight;
+
+    // Bottom pipe
+    const bottomPipeLeft = pipe.x;
+    const bottomPipeRight = pipe.x + this.pipeWidth;
+    const bottomPipeTop = pipe.bottomY;
+    const bottomPipeBottom = this.height;
+
+    // Check intersection with top pipe
+    if (birdRight > topPipeLeft && birdLeft < topPipeRight && birdTop < topPipeBottom) {
+      return true;
+    }
+    // Check intersection with bottom pipe
+    if (birdRight > bottomPipeLeft && birdLeft < bottomPipeRight && birdBottom > bottomPipeTop) {
+      return true;
+    }
+
+    return false;
+  }
+
+  draw() {
+    // Clear canvas
+    this.ctx.fillStyle = '#70c5ce';
+    this.ctx.fillRect(0, 0, this.width, this.height);
+
+    // Draw pipes
+    this.ctx.fillStyle = '#73bf2e';
+    for (let pipe of this.pipes) {
+      // Top pipe
+      this.ctx.fillRect(pipe.x, 0, this.pipeWidth, pipe.topHeight);
+      // Bottom pipe
+      this.ctx.fillRect(pipe.x, pipe.bottomY, this.pipeWidth, this.height - pipe.bottomY);
+    }
+
+    // Draw bird
+    this.ctx.fillStyle = '#f4d03f';
+    this.ctx.beginPath();
+    this.ctx.arc(this.bird.x, this.bird.y, this.bird.radius, 0, Math.PI * 2);
+    this.ctx.fill();
+
+    // Draw score
+    this.ctx.fillStyle = '#fff';
+    this.ctx.font = '20px Arial';
+    this.ctx.fillText('Score: ' + this.score, 10, 30);
+
+    if (this.gameOver) {
+      this.ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      this.ctx.fillRect(0, 0, this.width, this.height);
+      this.ctx.fillStyle = '#fff';
+      this.ctx.font = '30px Arial';
+      this.ctx.fillText('Game Over', this.width / 2 - 80, this.height / 2);
+      this.ctx.font = '16px Arial';
+      this.ctx.fillText('Press Space to restart', this.width / 2 - 80, this.height / 2 + 30);
+    }
   }
 }
 
+// Export for Node.js testing
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = Game;
+} else if (typeof window !== 'undefined') {
+  window.Game = Game;
 }
