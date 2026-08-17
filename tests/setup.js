@@ -1,1 +1,1 @@
-<full setup>
+// Jest setup file
