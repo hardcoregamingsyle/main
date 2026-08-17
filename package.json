@@ -1,17 +1,1 @@
-{
-  "name": "girl-flapper",
-  "version": "1.0.0",
-  "description": "A Flappy Bird clone with a girl theme",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "test": "jest --verbose"
-  },
-  "dependencies": {
-    "express": "^4.18.2"
-  },
-  "devDependencies": {
-    "jest": "^29.7.0",
-    "canvas": "^2.11.2"
-  }
-}
+...full content...
