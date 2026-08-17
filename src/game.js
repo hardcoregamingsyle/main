@@ -2,129 +2,158 @@ class Game {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
-    this.bird = { x: 60, y: canvas.height / 2, vy: 0, radius: 15, gravity: 0.5, jump: -8 };
-    this.pipes = [];
-    this.score = 0;
-    this.gameOver = false;
-    this.started = false;
-    this.frameCount = 0;
-    this.pipeWidth = 60;
-    this.pipeGap = 150;
-    this.pipeSpeed = 2;
-    this.pipeInterval = 90;
-  }
-
-  start() {
-    this.loop();
-  }
-
-  handleInput() {
-    if (!this.gameOver) {
-      if (!this.started) {
-        this.started = true;
-      }
-      this.bird.vy = this.bird.jump;
-    } else {
-      this.reset();
-      this.started = true;
-    }
+    this.width = canvas.width;
+    this.height = canvas.height;
+    this.reset();
+    this.running = false;
+    this.animationId = null;
   }
 
   reset() {
-    this.bird.y = this.canvas.height / 2;
-    this.bird.vy = 0;
+    this.bird = {
+      x: 50,
+      y: this.height / 2,
+      width: 30,
+      height: 30,
+      velocity: 0,
+      gravity: 0.5,
+      jump: -8
+    };
     this.pipes = [];
+    this.pipeWidth = 50;
+    this.pipeGap = 150;
+    this.pipeSpeed = 3;
     this.score = 0;
     this.gameOver = false;
     this.frameCount = 0;
+    this.spawnInterval = 100;
+  }
+
+  start() {
+    this.running = true;
+    this.gameLoop();
+  }
+
+  gameLoop() {
+    if (!this.running) return;
+    this.update();
+    this.draw();
+    this.animationId = requestAnimationFrame(() => this.gameLoop());
   }
 
   update() {
-    if (!this.started || this.gameOver) return;
+    if (this.gameOver) return;
 
-    this.bird.vy += this.bird.gravity;
-    this.bird.y += this.bird.vy;
+    // Bird physics
+    this.bird.velocity += this.bird.gravity;
+    this.bird.y += this.bird.velocity;
 
-    if (this.bird.y - this.bird.radius < 0 || this.bird.y + this.bird.radius > this.canvas.height) {
-      this.gameOver = true;
+    // Check boundaries
+    if (this.bird.y + this.bird.height > this.height || this.bird.y < 0) {
+      this.endGame();
     }
 
-    this.frameCount++;
-    if (this.frameCount % this.pipeInterval === 0) {
-      this.pipes.push(this.generatePipe());
+    // Spawn pipes
+    if (this.frameCount % this.spawnInterval === 0) {
+      this.spawnPipe();
     }
 
-    for (let pipe of this.pipes) {
+    // Move pipes
+    for (let i = this.pipes.length - 1; i >= 0; i--) {
+      const pipe = this.pipes[i];
       pipe.x -= this.pipeSpeed;
-    }
 
-    this.pipes = this.pipes.filter(p => p.x + this.pipeWidth > 0);
-
-    for (let pipe of this.pipes) {
-      if (
-        this.bird.x + this.bird.radius > pipe.x &&
-        this.bird.x - this.bird.radius < pipe.x + this.pipeWidth
-      ) {
-        if (
-          this.bird.y - this.bird.radius < pipe.top ||
-          this.bird.y + this.bird.radius > pipe.bottom
-        ) {
-          this.gameOver = true;
-        }
+      // Remove off-screen pipes
+      if (pipe.x + this.pipeWidth < 0) {
+        this.pipes.splice(i, 1);
+        continue;
       }
-      if (!pipe.passed && pipe.x + this.pipeWidth < this.bird.x) {
-        pipe.passed = true;
+
+      // Collision detection
+      if (this.checkCollision(this.bird, pipe)) {
+        this.endGame();
+      }
+
+      // Scoring: when pipe passes bird's x
+      if (!pipe.scored && pipe.x + this.pipeWidth < this.bird.x) {
+        pipe.scored = true;
         this.score++;
       }
     }
+
+    this.frameCount++;
   }
 
-  generatePipe() {
-    const pipeHeight = Math.floor(Math.random() * (this.canvas.height - this.pipeGap - 100)) + 50;
-    return {
-      x: this.canvas.width,
-      top: pipeHeight,
-      bottom: pipeHeight + this.pipeGap,
-      passed: false
-    };
+  spawnPipe() {
+    const minHeight = 50;
+    const maxHeight = this.height - this.pipeGap - minHeight;
+    const topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
+    const bottomHeight = this.height - topHeight - this.pipeGap;
+
+    this.pipes.push({
+      x: this.width,
+      topHeight: topHeight,
+      bottomHeight: bottomHeight,
+      width: this.pipeWidth,
+      scored: false
+    });
+  }
+
+  checkCollision(bird, pipe) {
+    // Bird rect
+    if (bird.x + bird.width > pipe.x && bird.x < pipe.x + pipe.width) {
+      // Check top pipe
+      if (bird.y < pipe.topHeight) return true;
+      // Check bottom pipe
+      if (bird.y + bird.height > this.height - pipe.bottomHeight) return true;
+    }
+    return false;
+  }
+
+  endGame() {
+    this.gameOver = true;
+    this.running = false;
+    cancelAnimationFrame(this.animationId);
+  }
+
+  handleInput() {
+    if (this.gameOver) {
+      this.reset();
+      this.start();
+    } else {
+      this.bird.velocity = this.bird.jump;
+    }
   }
 
   draw() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.clearRect(0, 0, this.width, this.height);
 
-    this.ctx.fillStyle = 'yellow';
-    this.ctx.beginPath();
-    this.ctx.arc(this.bird.x, this.bird.y, this.bird.radius, 0, Math.PI * 2);
-    this.ctx.fill();
-
-    this.ctx.fillStyle = 'green';
-    for (let pipe of this.pipes) {
-      this.ctx.fillRect(pipe.x, 0, this.pipeWidth, pipe.top);
-      this.ctx.fillRect(pipe.x, pipe.bottom, this.pipeWidth, this.canvas.height - pipe.bottom);
+    // Draw pipes
+    this.ctx.fillStyle = '#4CAF50';
+    for (const pipe of this.pipes) {
+      // Top pipe
+      this.ctx.fillRect(pipe.x, 0, pipe.width, pipe.topHeight);
+      // Bottom pipe
+      this.ctx.fillRect(pipe.x, this.height - pipe.bottomHeight, pipe.width, pipe.bottomHeight);
     }
 
-    this.ctx.fillStyle = 'white';
+    // Draw bird
+    this.ctx.fillStyle = '#FFD700';
+    this.ctx.fillRect(this.bird.x, this.bird.y, this.bird.width, this.bird.height);
+
+    // Draw score
+    this.ctx.fillStyle = '#FFFFFF';
     this.ctx.font = '24px Arial';
-    this.ctx.fillText(`Score: ${this.score}`, 10, 30);
-
-    if (!this.started) {
-      this.ctx.fillStyle = 'white';
-      this.ctx.font = '20px Arial';
-      this.ctx.fillText('Press Space to Start', 100, this.canvas.height / 2);
-    }
+    this.ctx.fillText('Score: ' + this.score, 10, 30);
 
     if (this.gameOver) {
-      this.ctx.fillStyle = 'red';
-      this.ctx.font = '30px Arial';
-      this.ctx.fillText('Game Over', 120, this.canvas.height / 2);
-      this.ctx.font = '16px Arial';
-      this.ctx.fillText('Press Space to Restart', 110, this.canvas.height / 2 + 30);
+      this.ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      this.ctx.fillRect(0, 0, this.width, this.height);
+      this.ctx.fillStyle = '#FFFFFF';
+      this.ctx.font = '36px Arial';
+      this.ctx.fillText('Game Over', this.width/2 - 100, this.height/2);
+      this.ctx.font = '18px Arial';
+      this.ctx.fillText('Press Space to restart', this.width/2 - 100, this.height/2 + 40);
     }
-  }
-
-  loop() {
-    this.update();
-    this.draw();
-    requestAnimationFrame(() => this.loop());
   }
 }
