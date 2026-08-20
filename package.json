@@ -2,7 +2,7 @@
   "name": "flappy-bird",
   "version": "1.0.0",
   "description": "Flappy Bird browser game",
-  "main": "src/index.js",
+  "main": "src/game.js",
   "scripts": {
     "start": "npx serve -s dist -l 3000 --host 0.0.0.0",
     "dev": "npx webpack serve --mode development --open",
