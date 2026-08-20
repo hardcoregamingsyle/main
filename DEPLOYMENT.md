@@ -1,37 +1,49 @@
-# Deploying to Cloudflare Pages
+# Deploying Flappy Bird to Cloudflare Pages
 
-This is a static site (HTML, CSS, JavaScript) with no backend, so Cloudflare Pages is a perfect fit.
+This guide covers two methods: **Git-based deployment** (recommended) and **Direct Upload via Wrangler CLI**.
 
-## Option 1: Git integration (recommended)
+## Prerequisites
 
-1. Push the project to GitHub (or GitLab).
-2. Go to Cloudflare Dashboard → Workers & Pages → Create → Pages → Connect to Git.
-3. Select the repository.
-4. Build settings:
-   - Framework preset: None
-   - Build command: `npm run build` (or leave empty if you don't use webpack)
-   - Build output directory: `dist` (or `src` if you don't build)
-   - Node version: 18+
-5. Click Save and Deploy.
+- A Cloudflare account (free tier works)
+- The project's source code (this repo)
+- Node.js and npm installed locally
 
-Every push to the branch triggers a new deployment.
+## Method 1: Deploy via Git (GitHub / GitLab)
 
-## Option 2: Serve directly from `src`
+1. Push this repository to a GitHub or GitLab repository.
+2. Log in to the [Cloudflare Dashboard](https://dash.cloudflare.com/) and navigate to **Workers & Pages** > **Pages**.
+3. Click **Create a project** > **Connect to Git**.
+4. Select your repository and configure the build settings:
+   - **Framework preset**: None (or leave blank)
+   - **Build command**: `npm run build`
+   - **Build output directory**: `dist`
+   - **Root directory**: `/`
+5. Click **Save and Deploy**. Cloudflare will automatically build and deploy your site on every push to the main branch.
 
-If you don't want a build step, set:
-- Build command: (empty)
-- Build output directory: `src`
+## Method 2: Deploy via Wrangler CLI
 
-Cloudflare will serve `src/index.html` and its assets as-is.
+1. Install Wrangler: `npm install -g wrangler`
+2. Log in: `wrangler login`
+3. In the project root, create a `wrangler.toml` file (optional but recommended):
+   ```toml
+   name = "flappy-bird"
+   pages_build_output_dir = "dist"
+   ```
+4. Build the project locally: `npm run build`
+5. Deploy: `npx wrangler pages deploy dist --project-name=flappy-bird`
+   (The first time it will prompt you to create the project.)
 
-## Option 3: Direct Upload with Wrangler
+## Local Development
 
 ```bash
-npx wrangler pages deploy src
+npm install
+npm run dev    # Webpack dev server with live reload
+npm run build  # Production build to dist/
+npm run preview # Serve the built app locally
 ```
 
-This uploads the `src` folder directly.
+## Build Setup
 
-## Custom Domain
+The project uses Webpack to bundle `src/game.js` and `src/index.html` into the `dist/` folder. The configuration is in `webpack.config.js`.
 
-In the Cloudflare Pages project, go to the "Custom domains" tab to add your own domain.
+After deployment, your game will be live at `https://<project-name>.pages.dev`.

@@ -1,0 +1,6 @@
+name = "flappy-bird"
+compatibility_date = "2024-12-19"
+pages_build_output_dir = "./dist"
+
+[build]
+command = "npm run build"
